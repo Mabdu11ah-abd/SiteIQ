@@ -67,7 +67,6 @@ app.get('/', (req, res) => {
   res.send('Welcome to SiteIQ Backend!');
 });
 
-app.use(mockClerkAuth);
 app.use('/api/users', userRoutes);
 app.use(' ', seoRoutes); // Mount webhook routes
 app.use('/api/history', historyRoutes);
