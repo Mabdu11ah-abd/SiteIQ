@@ -1,6 +1,6 @@
 import axios from "axios";
 import SeoReport from "../models/seoModel.js";
-import SeoRecommendation from "../models/SeoRecommendation.js";
+import SeoRecommendation from "../models/seoRecommendation.js";
 import Website from "../models/Website.js"; //new
 
 
