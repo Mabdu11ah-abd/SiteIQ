@@ -1,5 +1,5 @@
 import User from "../models/User.js";
-import Website from "../models/Website.js";
+import Website from "../models/website.js";
 import SeoRecommendation from "../models/seoRecommendation.js";
 import Conversation from "../models/techstackChatModel.js";
 // 🟦 1. Overview
