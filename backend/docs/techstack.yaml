@@ -1,0 +1,214 @@
+openapi: 3.0.0
+info:
+  title: SiteIQ Tech Stack Recommendation API
+  description: API for recommending or improving a technology stack based on user goals or an existing website.
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:5000/api/techstack # Base path for tech stack endpoints
+
+tags:
+  - name: Tech Stack
+    description: Recommend or improve web tech stacks based on use case and performance/SEO priorities
+
+components:
+  securitySchemes:
+    # Assuming authentication is handled externally (e.g., Clerk.js)
+    # providing user ID in req.auth.userId
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token for user authentication.
+
+  schemas:
+    RecommendationRequest:
+      type: object
+      required:
+        - useCase
+        - seoFocused
+        - performanceFocused
+      properties:
+        useCase:
+          type: string
+          description: A brief description of the website's purpose or business use case (e.g., "ecommerce platform", "personal blog", "corporate website").
+          example: "ecommerce platform"
+        seoFocused:
+          type: boolean
+          description: Indicates whether SEO is a primary focus for the recommended stack.
+          example: true
+        performanceFocused:
+          type: boolean
+          description: Indicates whether performance (speed, responsiveness) is a primary focus for the recommended stack.
+          example: true
+
+    ImprovementRequest:
+      type: object
+      required:
+        - websiteUrl
+        - useCase
+        - seoFocused
+        - performanceFocused
+      properties:
+        websiteUrl:
+          type: string
+          format: uri
+          description: The URL of the existing website to analyze for improvement.
+          example: "https://example.com"
+        useCase:
+          type: string
+          description: A brief description of the website's purpose or business use case (e.g., "blog", "portfolio").
+          example: "blog"
+        seoFocused:
+          type: boolean
+          description: Indicates if SEO is a priority for the improvements.
+          example: false
+        performanceFocused:
+          type: boolean
+          description: Indicates if performance is a priority for the improvements.
+          example: true
+
+    RecommendationResponse:
+      type: object
+      properties:
+        mode:
+          type: string
+          enum: [recommend]
+          example: "recommend"
+        recommendation:
+          type: object # Or string, depending on the exact output of recommendingTechStack
+          description: The AI-generated recommendation for the new tech stack.
+          example:
+            frontend: "React with Next.js"
+            backend: "Node.js with Express"
+            database: "MongoDB"
+            hosting: "Vercel"
+            notes: "This stack provides excellent SEO capabilities and performance for an e-commerce platform due to server-side rendering and efficient data handling."
+
+    ImprovementResponse:
+      type: object
+      properties:
+        mode:
+          type: string
+          enum: [improve]
+          example: "improve"
+        website:
+          type: string
+          description: The hostname extracted from the provided website URL.
+          example: "example.com"
+        websiteTitle:
+          type: string
+          description: The title of the website, extracted from meta tags.
+          example: "Example Website Title"
+        websiteDescription:
+          type: string
+          description: The description of the website, extracted from meta tags.
+          example: "A sample website demonstrating various web technologies."
+        scripts:
+          type: array
+          items:
+            type: string
+          description: A list of script URLs found on the website.
+          example:
+            - "https://www.googletagmanager.com/gtm.js"
+            - "/js/main.js"
+        websiteUrl:
+          type: string
+          format: uri
+          description: The original URL of the website analyzed.
+          example: "https://example.com"
+        recommendation:
+          type: object # Or string, depending on the exact output of analyzeWebsite
+          description: The AI-generated recommendations for improving the existing tech stack.
+          example:
+            currentStack: "WordPress with shared hosting"
+            suggestions:
+              - "Migrate to a headless CMS (e.g., Strapi, Contentful) for better performance."
+              - "Implement image optimization (WebP, lazy loading) for faster page loads."
+              - "Consider a CDN for global content delivery."
+            rationale: "Your current WordPress setup is hindering performance. A headless CMS combined with modern frontend can drastically improve speed and maintain SEO benefits."
+        conversationId:
+          type: string
+          description: The ID of the newly created conversation record for this improvement.
+          example: "66710b1a0e8d0e7a4b0d1e2f"
+
+paths:
+  /recommend:
+    post:
+      summary: Recommend a new tech stack based on user goals
+      tags: [Tech Stack]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecommendationRequest'
+      responses:
+        '200':
+          description: Tech stack recommendation successfully generated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecommendationResponse'
+        '400':
+          description: Missing or invalid input parameters.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Use case, SEO focus, and performance focus are required"
+        '500':
+          description: Failed to get recommendation due to an internal server error.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Failed to get recommendation"
+
+  /improve:
+    post:
+      summary: Suggest improvements to an existing website’s tech stack
+      tags: [Tech Stack]
+      security:
+        - BearerAuth: [] # This endpoint requires authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ImprovementRequest'
+      responses:
+        '200':
+          description: Tech stack improvement recommendation returned successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImprovementResponse'
+        '400':
+          description: Missing or invalid input parameters.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Website URL, use case, SEO focus, and performance focus are required"
+        '401':
+          description: Unauthorized - Authentication token is missing or invalid.
+        '500':
+          description: Website analysis or recommendation generation failed due to a server error.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Failed to analyze website"

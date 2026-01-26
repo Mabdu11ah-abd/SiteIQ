@@ -1,0 +1,555 @@
+openapi: 3.0.3
+info:
+  title: SEO Analytics API
+  version: 1.0.0
+tags:
+  - name: Models
+components:
+  schemas:
+
+    # Existing models
+    TechstackChat:
+      type: object
+      required:
+        - clerkUserId
+        - sessionId
+        - history
+      properties:
+        clerkUserId:
+          type: string
+          description: Unique ID of the user from Clerk.
+        sessionId:
+          type: string
+          description: Unique ID for the chat session.
+        mode:
+          type: string
+          enum: [improve]
+          default: improve
+          description: The mode of the chat interaction (e.g., improve tech stack).
+        history:
+          type: array
+          description: Ordered list of messages in the chat.
+          items:
+            $ref: '#/components/schemas/ChatMessage' # Re-using ChatMessage for consistency
+        createdAt:
+          type: string
+          format: date-time
+          description: Timestamp when the chat session was created.
+        lastAccessed:
+          type: string
+          format: date-time
+          description: Timestamp of the last activity in the chat session.
+
+    # Updated SeoReport to include Lighthouse and Website reference
+    SeoReport:
+      type: object
+      required:
+        - clerkUserId
+        - website
+      properties:
+        _id:
+          type: string
+          description: Unique identifier of the SEO report.
+        clerkUserId:
+          type: string
+          description: Unique ID of the user from Clerk.
+        website:
+          type: string
+          description: ID of the associated Website document.
+          example: 60d0fe4f3b584b001c3d0f3b # Example ObjectId
+        scanDate:
+          type: string
+          format: date-time
+          description: Date and time when the SEO scan was performed.
+        phraseResults:
+          type: array
+          description: Results for individual phrases or keywords.
+          items:
+            $ref: '#/components/schemas/PhraseResult'
+        lighthouse:
+          $ref: '#/components/schemas/LighthouseReport' # Added Lighthouse report reference
+        createdAt:
+          type: string
+          format: date-time
+          description: Timestamp when the SEO report document was created.
+        updatedAt:
+          type: string
+          format: date-time
+          description: Timestamp when the SEO report document was last updated.
+
+    PhraseResult:
+      type: object
+      required:
+        - phrase
+        - jid
+      properties:
+        phrase:
+          type: string
+          description: The keyword or phrase analyzed.
+        jid:
+          type: string
+          description: Job ID associated with the phrase analysis.
+        rawResponse:
+          type: object
+          description: Raw response data from the analysis service.
+          # Using additionalProperties for flexible object structure if content varies
+          additionalProperties: true
+        scores:
+          type: object
+          description: Various SEO scores for the phrase.
+          properties:
+            rankingPosition:
+              type: number
+              default: 0
+              description: Search engine ranking position.
+            keywordRelevance:
+              type: number
+              default: 0
+              description: Relevance score for keywords.
+            richSnippets:
+              type: number
+              default: 0
+              description: Score for rich snippet optimization.
+            urlStructure:
+              type: number
+              default: 0
+              description: Score for URL structure optimization.
+            visibility:
+              type: number
+              default: 0
+              description: Visibility score in search results.
+            competitorAnalysis:
+              type: number
+              default: 0
+              description: Score based on competitor analysis.
+            paginationStrength:
+              type: number
+              default: 0
+              description: Score for pagination effectiveness.
+            total:
+              type: number
+              default: 0
+              description: Aggregate total score.
+
+    WebsiteHistory:
+      type: object
+      required:
+        - userId
+        - url
+        - action
+      properties:
+        _id:
+          type: string
+          description: Unique identifier for the website history entry.
+        userId:
+          type: string
+          description: Unique ID of the user associated with this history entry.
+        url:
+          type: string
+          format: url
+          description: The URL of the website.
+        seoReport:
+          type: object
+          description: Snapshot of the SEO report at the time of the action.
+          additionalProperties: true # Assuming this is a flexible object
+        seoRecommendations:
+          type: array
+          description: List of SEO recommendations at the time of the action.
+          items:
+            type: object # Placeholder, assuming it's a generic object if structure varies
+            additionalProperties: true
+        action:
+          type: string
+          enum: [Analyzed, Updated, Deleted]
+          description: The action performed on the website.
+        timestamp:
+          type: string
+          format: date-time
+          description: Timestamp when the action occurred.
+        createdAt:
+          type: string
+          format: date-time
+          description: Timestamp when the history entry was created.
+        updatedAt:
+          type: string
+          format: date-time
+          description: Timestamp when the history entry was last updated.
+
+    # Updated SeoRecommendation to include website reference and structured recommendations
+    SeoRecommendation:
+      type: object
+      required:
+        - clerkUserId
+        - website
+        - seoReport
+        - recommendations
+      properties:
+        _id:
+          type: string
+          description: Unique identifier of the SEO recommendation.
+        clerkUserId:
+          type: string
+          description: Unique ID of the user from Clerk.
+        domain:
+          type: string
+          format: hostname
+          description: The domain associated with the recommendation.
+        website:
+          type: string
+          description: ID of the associated Website document.
+          example: 60d0fe4f3b584b001c3d0f3b # Example ObjectId
+        seoReport:
+          type: string
+          description: ID of the associated SeoReport document (ensures unique link).
+          example: 60d0fe4f3b584b001c3d0f3a # Example ObjectId
+        recommendations:
+          type: object
+          description: Specific recommendations for different aspects.
+          properties:
+            lighthouse:
+              type: string
+              description: AI-generated recommendation based on Lighthouse report.
+            seo:
+              type: string
+              description: AI-generated general SEO recommendation.
+        action:
+          type: string
+          enum: [Analyzed, In Progress, Completed, Failed]
+          default: Analyzed
+          description: Current status of the recommendation.
+        createdAt:
+          type: string
+          format: date-time
+          description: Timestamp when the recommendation was created.
+        updatedAt:
+          type: string
+          format: date-time
+          description: Timestamp when the recommendation was last updated.
+
+    # Updated User model with full detail
+    User:
+      type: object
+      required:
+        - clerkUserId
+        - name
+        - username
+        - email
+      properties:
+        _id:
+          type: string
+          description: Unique identifier of the user.
+        clerkUserId:
+          type: string
+          description: Unique ID of the user from Clerk authentication.
+        name:
+          type: string
+          minLength: 3
+          maxLength: 50
+          description: User's full name.
+        username:
+          type: string
+          minLength: 3
+          maxLength: 30
+          pattern: "^[a-zA-Z0-9_]+$"
+          description: User's unique username.
+        email:
+          type: string
+          format: email
+          description: User's email address.
+        phoneNumber:
+          type: string
+          pattern: "^[0-9]{10,15}$"
+          description: User's phone number.
+        image:
+          type: string
+          format: url
+          default: "https://default-avatar.com/avatar.png"
+          description: URL to the user's profile image.
+        isVerified:
+          type: boolean
+          default: false
+          description: Indicates if the user's email or account is verified.
+        membership:
+          type: string
+          enum: [premium, freemium]
+          default: freemium
+          description: The user's overall membership status.
+        stripe:
+          type: object
+          description: Stripe subscription details for the user.
+          properties:
+            customerId:
+              type: string
+              nullable: true
+              description: Stripe customer ID.
+            subscriptionId:
+              type: string
+              nullable: true
+              description: Stripe subscription ID.
+            isActive:
+              type: boolean
+              default: false
+              description: Indicates if the Stripe subscription is currently active.
+            plan:
+              type: string
+              enum: [basic, pro, enterprise, pro_monthly, pro_yearly]
+              default: basic
+              description: The specific Stripe plan the user is subscribed to.
+        loginCount:
+          type: number
+          default: 0
+          minimum: 0
+          description: Number of times the user has logged in.
+        weeklyWebsiteLimit:
+          type: number
+          default: 3
+          description: The maximum number of websites a user can analyze per week.
+        lastResetDate:
+          type: string
+          format: date-time
+          description: The date when the weekly website limit was last reset.
+        subscription:
+          type: object
+          description: Internal subscription and usage tracking.
+          properties:
+            plan:
+              type: string
+              enum: [freemium, individual, business]
+              default: freemium
+              description: The user's subscription plan level.
+            usage:
+              type: object
+              description: Current usage statistics for the billing period.
+              properties:
+                seoRecommendations:
+                  type: number
+                  default: 0
+                  description: Count of SEO recommendations generated.
+                techStackRecommendations:
+                  type: number
+                  default: 0
+                  description: Count of tech stack recommendations generated.
+                weekStart:
+                  type: string
+                  format: date-time
+                  description: The start date of the current usage tracking week.
+        createdAt:
+          type: string
+          format: date-time
+          description: Timestamp when the user account was created.
+        updatedAt:
+          type: string
+          format: date-time
+          description: Timestamp when the user account was last updated.
+
+    # Existing WebsiteVector (matches Mongoose VectorSchema)
+    WebsiteVector:
+      type: object
+      required:
+        - websiteUrl
+        - embeddings
+        - textData
+        - metadata
+      properties:
+        _id:
+          type: string
+          description: Unique identifier of the website vector.
+        websiteUrl:
+          type: string
+          format: url
+          description: The URL of the website.
+        embeddings:
+          type: array
+          description: Numerical vector representation of the website content.
+          items:
+            type: number
+        textData:
+          type: string
+          description: The raw text content used to generate the embeddings.
+        metadata:
+          type: object
+          description: Additional metadata about the website vector.
+          properties:
+            userId:
+              type: string
+              description: ID of the user who owns the website.
+              example: 60d0fe4f3b584b001c3d0f3b # Example ObjectId
+            createdAt:
+              type: string
+              format: date-time
+              description: Timestamp when the vector was created.
+            lastUpdated:
+              type: string
+              format: date-time
+              description: Timestamp when the vector was last updated.
+
+    # New models based on Mongoose schemas
+
+    LighthouseReport:
+      type: object
+      properties:
+        logs:
+          type: array
+          description: Log messages generated during the Lighthouse analysis.
+          items:
+            type: string
+        error:
+          type: object
+          description: Error details if the Lighthouse audit failed.
+          properties:
+            message:
+              type: string
+            stack:
+              type: string
+            name:
+              type: string
+        lighthouseReport:
+          type: object
+          description: The detailed Lighthouse report object.
+          properties:
+            lighthouseVersion:
+              type: string
+            requestedUrl:
+              type: string
+              format: url
+            mainDocumentUrl:
+              type: string
+              format: url
+            finalDisplayedUrl:
+              type: string
+              format: url
+            finalUrl:
+              type: string
+              format: url
+            fetchTime:
+              type: string
+              format: date-time
+            gatherMode:
+              type: string
+            runtimeError:
+              type: object # Can be mixed, using generic object
+              additionalProperties: true
+            runWarnings:
+              type: array
+              items:
+                type: string
+            userAgent:
+              type: string
+            environment:
+              type: object # Can be mixed, using generic object
+              additionalProperties: true
+            audits:
+              type: object # Can be mixed, using generic object
+              additionalProperties: true
+          additionalProperties: true # Allow for other unlisted Lighthouse report properties
+        createdAt:
+          type: string
+          format: date-time
+          description: Timestamp when the Lighthouse report was generated.
+
+    ChatMessage:
+      type: object
+      required:
+        - role
+        - content
+      properties:
+        role:
+          type: string
+          enum: [user, assistant]
+          description: The role of the message sender (user or AI assistant).
+        content:
+          type: string
+          description: The content of the message.
+        createdAt:
+          type: string
+          format: date-time
+          description: Timestamp when the message was created.
+
+    Conversation:
+      type: object
+      required:
+        - clerkUserId
+        - history
+      properties:
+        _id:
+          type: string
+          description: Unique identifier of the conversation.
+        clerkUserId:
+          type: string
+          description: Unique ID of the user from Clerk.
+        mode:
+          type: string
+          default: improve
+          description: The mode or purpose of the conversation (e.g., 'improve' for tech stack).
+        title:
+          type: string
+          default: "Untitled Chat"
+          description: A title for the conversation.
+        history:
+          type: array
+          description: Ordered list of messages in the conversation.
+          items:
+            $ref: '#/components/schemas/ChatMessage'
+        improvementResponse:
+          type: string
+          nullable: true
+          description: Optional raw AI response for overall improvement.
+        createdAt:
+          type: string
+          format: date-time
+          description: Timestamp when the conversation was initiated.
+        lastUpdated:
+          type: string
+          format: date-time
+          description: Timestamp when the conversation was last updated.
+
+    Website:
+      type: object
+      required:
+        - clerkuserId
+        - domain
+      properties:
+        _id:
+          type: string
+          description: Unique identifier of the website.
+        clerkuserId:
+          type: string
+          description: Unique ID of the user from Clerk who owns this website.
+        domain:
+          type: string
+          pattern: "^[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"
+          description: The domain name of the website (e.g., example.com). Stored with https:// prefix internally.
+        seoReport:
+          type: string
+          nullable: true
+          description: ID of the associated SeoReport document.
+          example: 60d0fe4f3b584b001c3d0f3b # Example ObjectId
+        seoRecommendation:
+          type: array
+          description: List of IDs of associated SeoRecommendation documents.
+          items:
+            type: string
+            example: 60d0fe4f3b584b001c3d0f3c # Example ObjectId
+        aiRecommendations:
+          type: object
+          description: General AI-generated recommendations for the website.
+          additionalProperties: true
+        chatHistory:
+          type: array
+          description: Chat history specific to this website.
+          items:
+            $ref: '#/components/schemas/ChatMessage' # Re-using ChatMessage
+        chatCount:
+          type: number
+          default: 0
+          minimum: 0
+          maximum: 15
+          description: Number of chat messages for this website within a session.
+        createdAt:
+          type: string
+          format: date-time
+          description: Timestamp when the website document was created.
+        updatedAt:
+          type: string
+          format: date-time
+          description: Timestamp when the website document was last updated.

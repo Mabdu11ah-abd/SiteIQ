@@ -1,0 +1,481 @@
+openapi: 3.0.0
+info:
+  title: SiteIQ SEO Reports API
+  description: API for generating, retrieving, scoring, and managing SEO reports scoped by user and website.
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:5000/api/
+
+tags:
+  - name: SEO Reports
+    description: All endpoints related to SEO report generation and management
+
+components:
+  securitySchemes:
+    # Assuming Clerk.js or similar authentication providing a userId in req.auth
+    ClerkAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        Authentication using a Bearer token (JWT) typically provided by Clerk.js.
+        The `clerkUserId` is extracted from the authenticated request.
+
+  schemas:
+    Website:
+      type: object
+      properties:
+        _id:
+          type: string
+          description: Unique identifier of the Website document.
+          example: "60c72b2f9b1d8c4f4c8b4567"
+        clerkuserId: # Corrected from 'user' to 'clerkuserId' as per mongoose schema
+          type: string
+          description: Clerk User ID associated with the website.
+          example: "user_2gqW7L5Y3K1X9Q8Z"
+        domain:
+          type: string
+          example: "example.com"
+          description: The main domain of the website.
+        # Add other Website properties from your Mongoose model if they are returned by API
+        # seoReport: { type: string, description: "ID of the associated SeoReport" }
+        # seoRecommendation: { type: array, items: { type: string }, description: "IDs of associated SeoRecommendation" }
+        # aiRecommendations: { type: object, description: "AI-generated recommendations" }
+        # chatHistory: { type: array, items: { $ref: '#/components/schemas/ChatMessage' } } # Assuming ChatMessage is defined elsewhere
+        # chatCount: { type: number }
+        # createdAt: { type: string, format: date-time }
+        # updatedAt: { type: string, format: date-time }
+
+    SeoScore:
+      type: object
+      description: Comprehensive SEO scores for a specific phrase on a domain.
+      properties:
+        rankingPosition:
+          type: number
+          default: 0
+          description: Score based on the website's ranking position.
+        keywordRelevance:
+          type: number
+          default: 0
+          description: Score indicating how relevant the keyword is to the content.
+        richSnippets:
+          type: number
+          default: 0
+          description: Score for rich snippet implementation.
+        urlStructure:
+          type: number
+          default: 0
+          description: Score for the clarity and SEO-friendliness of the URL.
+        visibility:
+          type: number
+          default: 0
+          description: Score for overall visibility in search results.
+        competitorAnalysis:
+          type: number
+          default: 0
+          description: Score reflecting competitive landscape.
+        paginationStrength:
+          type: number
+          default: 0
+          description: Score for effective pagination.
+        total:
+          type: number
+          default: 0
+          description: Aggregate total SEO score.
+
+    PhraseResult:
+      type: object
+      description: The result and scores for a specific phrase analysis.
+      properties:
+        _id:
+          type: string
+          description: Unique identifier for the phrase result within the report.
+          example: "60c72b2f9b1d8c4f4c8b4568"
+        jid:
+          type: string
+          example: "JID123456"
+          description: Job ID returned by the external SEO API for this phrase.
+        phrase:
+          type: string
+          example: "best running shoes"
+          description: The keyword or phrase analyzed.
+        scores:
+          $ref: '#/components/schemas/SeoScore'
+        rawResponse:
+          type: object
+          description: Raw data received from the external SEO API for this job.
+          additionalProperties: true # Allows for flexible content
+        updatedAt:
+          type: string
+          format: date-time
+          description: Timestamp when this phrase result was last updated.
+        createdAt:
+          type: string
+          format: date-time
+          description: Timestamp when this phrase result was created.
+
+    SeoReport:
+      type: object
+      description: A comprehensive SEO report for a website, containing multiple phrase results.
+      properties:
+        _id:
+          type: string
+          description: Unique identifier of the SEO Report document.
+          example: "60c72b2f9b1d8c4f4c8b4569"
+        clerkUserId:
+          type: string
+          description: Clerk User ID who owns this report.
+          example: "user_2gqW7L5Y3K1X9Q8Z"
+        website:
+          $ref: '#/components/schemas/Website' # This means the entire Website object is embedded/populated
+          description: The website associated with this SEO report (populated).
+        scanDate:
+          type: string
+          format: date-time
+          description: Date and time when the SEO scan was performed.
+        phraseResults:
+          type: array
+          description: List of detailed results for each analyzed phrase.
+          items:
+            $ref: '#/components/schemas/PhraseResult'
+        createdAt:
+          type: string
+          format: date-time
+          description: Timestamp when the SEO report document was created.
+        updatedAt:
+          type: string
+          format: date-time
+          description: Timestamp when the SEO report document was last updated.
+
+paths:
+  /seoreports/generate:
+    post:
+      summary: Generate and score a new SEO report for a given phrase and website
+      tags: [SEO Reports]
+      security:
+        - ClerkAuth: [] # Requires authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - phrase
+                - websiteId # Changed to websiteId as per controller
+              properties:
+                phrase:
+                  type: string
+                  example: "buy shoes online"
+                  description: The keyword or phrase for which to generate the SEO report.
+                websiteId: # Changed to websiteId as per controller
+                  type: string
+                  example: "665ce3e2569f28e78653c1e1"
+                  description: The unique identifier of the website to associate the report with.
+      responses:
+        '200':
+          description: Report created or updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "New phrase added to existing report with results and scores"
+                  jid:
+                    type: string
+                    example: "JID_abc123def456"
+                  reportId:
+                    type: string
+                    example: "60c72b2f9b1d8c4f4c8b4569"
+                  phraseResult:
+                    $ref: '#/components/schemas/PhraseResult'
+        '400':
+          description: Missing required fields (phrase, websiteId, clerkUserId)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Missing required fields (phrase, websiteId, clerkUserId)"
+        '404':
+          description: Website or associated SEO report not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Website not found."
+        '500':
+          description: Internal server error or failure to initiate Authoritas job
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Failed to generate and update SEO report"
+                  details:
+                    type: string
+                    example: "Error message from the server or external API"
+        '504':
+          description: Authoritas job did not complete in time
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Authoritas job did not complete in time"
+                  jid:
+                    type: string
+                  status:
+                    type: string
+                    example: "pending"
+
+  /seoreports/delete/{jid}:
+    delete:
+      summary: Delete a specific phrase result by its job ID (JID)
+      tags: [SEO Reports]
+      security:
+        - ClerkAuth: [] # Requires authentication
+      parameters:
+        - in: path
+          name: jid
+          required: true
+          schema:
+            type: string
+            example: "JID_abc123def456"
+          description: Job ID of the phrase result to delete. If this is the only phrase in a report, the entire report might be deleted.
+      responses:
+        '200':
+          description: Phrase result deleted successfully, or entire report if it was the last phrase.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Phrase result deleted successfully"
+                  jid:
+                    type: string
+                    example: "JID_abc123def456"
+        '400':
+          description: Missing JID
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Job ID (jid) is required"
+        '404':
+          description: No report found containing this JID or for the authenticated user.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "No report found containing this jid"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Failed to delete report or phrase"
+                  details:
+                    type: string
+                    example: "Error message details"
+
+  /seoreports/return/{jid}:
+    get:
+      summary: Retrieve the saved SEO report data for a specific job ID (JID)
+      tags: [SEO Reports]
+      security:
+        - ClerkAuth: [] # Requires authentication
+      parameters:
+        - in: path
+          name: jid
+          required: true
+          schema:
+            type: string
+            example: "JID_abc123def456"
+          description: Job ID for the specific phrase result within a report.
+      responses:
+        '200':
+          description: Report and phrase result found and returned.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  reportId:
+                    type: string
+                    example: "60c72b2f9b1d8c4f4c8b4569"
+                  website:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        example: "665ce3e2569f28e78653c1e1"
+                      domain:
+                        type: string
+                        example: "example.com"
+                  scanDate:
+                    type: string
+                    format: date-time
+                    example: "2023-10-27T10:00:00Z"
+                  phraseResult:
+                    $ref: '#/components/schemas/PhraseResult'
+        '400':
+          description: Missing JID parameter.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Job ID not included in parameter"
+        '404':
+          description: Report or phrase result not found for the given JID and authenticated user.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "No report found containing this jid"
+        '500':
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Internal server error"
+                  details:
+                    type: string
+                    example: "Error message details"
+
+  /seoreports/websites/{websiteId}:
+    get:
+      summary: Retrieve the main SEO report for a specific website
+      tags: [SEO Reports]
+      security:
+        - ClerkAuth: [] # Requires authentication
+      parameters:
+        - in: path
+          name: websiteId
+          required: true
+          schema:
+            type: string
+            example: "665ce3e2569f28e78653c1e1"
+          description: The unique identifier of the website to retrieve the SEO report for.
+      responses:
+        '200':
+          description: SEO report for the specified website found.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  seoReport:
+                    $ref: '#/components/schemas/SeoReport' # Returns the full populated SeoReport
+        '404':
+          description: Website not found.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Website not found"
+        '500':
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Server error"
+
+  /seoreports/delete/{websiteId}/{phrase}:
+    delete:
+      summary: Delete a specific phrase result from a website's SEO report by phrase string
+      tags: [SEO Reports]
+      security:
+        - ClerkAuth: [] # Requires authentication
+      parameters:
+        - in: path
+          name: websiteId
+          required: true
+          schema:
+            type: string
+            example: "665ce3e2569f28e78653c1e1"
+          description: The unique identifier of the website whose SEO report contains the phrase to delete.
+        - in: path
+          name: phrase
+          required: true
+          schema:
+            type: string
+            example: "old keyword to remove"
+          description: The exact phrase string to be deleted from the website's SEO report.
+      responses:
+        '200':
+          description: Phrase successfully deleted from the report.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: 'Phrase "old keyword to remove" deleted successfully.'
+                  updatedReport:
+                    $ref: '#/components/schemas/SeoReport'
+        '404':
+          description: Website or associated SEO report not found.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Website or associated SEO report not found"
+        '500':
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Server error"
+                  error:
+                    type: string
+                    example: "Detailed error message"

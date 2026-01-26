@@ -1,0 +1,348 @@
+openapi: 3.0.0
+info:
+  title: SiteIQ SEO Recommendation API
+  version: 1.0.0
+  description: API for generating, retrieving, and deleting AI-driven SEO recommendations for websites tied to user accounts.
+
+servers:
+  - url: http://localhost:5000/api/seo/ # Base path for SEO recommendations
+
+tags:
+  - name: SEO Recommendations
+    description: Manage AI-generated SEO suggestions per user and website
+
+components:
+  securitySchemes:
+    # Assuming Clerk.js or similar authentication providing a userId in req.auth
+    ClerkAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        Authentication using a Bearer token (JWT) typically provided by Clerk.js.
+        The `userId` is extracted from the authenticated request (`req.auth.userId`).
+
+  schemas:
+    SEORecommendation:
+      type: object
+      description: Represents an AI-generated SEO recommendation for a website.
+      properties:
+        _id:
+          type: string
+          description: Unique identifier of the SEO recommendation.
+          example: "66710b1a0e8d0e7a4b0d1e2f"
+        clerkUserId:
+          type: string
+          description: The Clerk User ID associated with this recommendation.
+          example: "user_2gqW7L5Y3K1X9Q8Z"
+        website: # Assuming this stores the Website ID
+          type: string
+          description: The ID of the Website this recommendation belongs to.
+          example: "665ce3e2569f28e78653c1e1"
+        recommendation:
+          type: string
+          description: The actual AI-generated SEO recommendation text.
+          example: "Consider adding more relevant keywords to your meta descriptions to improve CTR."
+        sourceReport: # Assuming you might link to the SEOReport that prompted this
+          type: string
+          description: The ID of the SEO Report that this recommendation is based on (optional).
+          example: "60c72b2f9b1d8c4f4c8b4569"
+        type:
+          type: string
+          description: The type of recommendation (e.g., 'SEO', 'Lighthouse').
+          example: "SEO"
+        createdAt:
+          type: string
+          format: date-time
+          description: Timestamp when the recommendation was created.
+        updatedAt:
+          type: string
+          format: date-time
+          description: Timestamp when the recommendation was last updated.
+
+    SEOReportInput:
+      type: object
+      description: Schema for the SEO report data provided to generate recommendations.
+      # This is based on the example, adapt if your actual data structure is different
+      properties:
+        titleTag:
+          type: string
+          example: "Missing"
+        metaDescription:
+          type: string
+          example: "Too short"
+        crawlErrors:
+          type: integer
+          example: 3
+        # Add any other fields that are part of the raw SEO report
+        # These are just examples, your actual seoReport object may differ
+        pageSpeedScore:
+          type: number
+          example: 75
+        mobileFriendliness:
+          type: string
+          example: "Needs Improvement"
+      additionalProperties: true # Allows for flexible content beyond explicitly defined properties
+
+    WebsiteRecommendations:
+      type: object
+      description: Object containing recommendations for a specific website.
+      properties:
+        websiteId:
+          type: string
+          example: "665ce3e2569f28e78653c1e1"
+          description: The ID of the website.
+        websiteUrl:
+          type: string
+          example: "https://example.com"
+          description: The URL of the website.
+        recommendations:
+          type: array
+          items:
+            $ref: '#/components/schemas/SEORecommendation'
+          description: List of SEO recommendations for this website.
+
+paths:
+  /generate/{websiteId}:
+    post:
+      summary: Generate new SEO recommendations for a specific website
+      tags: [SEO Recommendations]
+      security:
+        - ClerkAuth: [] # Requires authentication
+      parameters:
+        - name: websiteId
+          in: path
+          required: true
+          schema:
+            type: string
+            example: "665ce3e2569f28e78653c1e1"
+          description: The unique identifier of the website for which to generate recommendations.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - seoReport # The controller uses req.body.seoReport
+              properties:
+                seoReport:
+                  $ref: '#/components/schemas/SEOReportInput'
+                  description: Raw SEO report object containing data to base recommendations on.
+      responses:
+        '200':
+          description: SEO recommendation successfully generated and saved.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "SEO recommendation generated and saved."
+                  seoRecommendation:
+                    $ref: '#/components/schemas/SEORecommendation' # Assuming it returns the newly created recommendation object
+        '400':
+          description: Missing websiteId in path or required fields in body.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Missing websiteId or seoReport in request body."
+        '401':
+          description: Unauthorized - authentication token missing or invalid.
+        '403':
+          description: Forbidden - subscription limit exceeded.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Subscription limit for SEO generation reached."
+        '404':
+          description: Website not found.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Website not found."
+        '500':
+          description: Internal server error or AI generation failure.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Failed to generate SEO recommendation."
+                  details:
+                    type: string
+                    example: "Error message from AI service or server."
+
+  /generate-lighthouse:
+    post:
+      summary: Generate Lighthouse-based SEO recommendations
+      tags: [SEO Recommendations]
+      security:
+        - ClerkAuth: [] # Requires authentication, implied by other routes and common practice
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: Input data for Lighthouse-based recommendation generation.
+              # Adjust this schema to match what generateLightHouseRecommendation expects.
+              # For now, it's a generic object.
+              properties:
+                websiteUrl:
+                  type: string
+                  example: "https://example.com"
+                lighthouseReportData:
+                  type: object
+                  description: Raw Lighthouse report data.
+                  additionalProperties: true
+              required:
+                - websiteUrl
+                - lighthouseReportData
+      responses:
+        '200':
+          description: Lighthouse recommendation successfully generated and saved.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Lighthouse recommendation generated and saved."
+                  seoRecommendation:
+                    $ref: '#/components/schemas/SEORecommendation' # Assuming it returns the newly created recommendation object
+        '400':
+          description: Missing input fields.
+        '401':
+          description: Unauthorized.
+        '500':
+          description: Internal server or AI failure.
+
+  /{websiteId}:
+    get:
+      summary: Get all SEO recommendations for a specific website
+      tags: [SEO Recommendations]
+      security:
+        - ClerkAuth: [] # Requires authentication
+      parameters:
+        - name: websiteId
+          in: path
+          required: true
+          schema:
+            type: string
+            example: "665ce3e2569f28e78653c1e1"
+          description: The unique identifier of the website to retrieve recommendations for.
+      responses:
+        '200':
+          description: List of SEO recommendations for the given website.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SEORecommendation' # Returns an array of recommendation objects
+        '401':
+          description: Unauthorized.
+        '404':
+          description: Website not found.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Website not found."
+        '500':
+          description: Server error.
+
+  /{id}: # This path applies to updateRecommendation and deleteRecommendation
+    put:
+      summary: Update a specific SEO recommendation by ID
+      tags: [SEO Recommendations]
+      security:
+        - ClerkAuth: [] # Requires authentication
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            example: "66710b1a0e8d0e7a4b0d1e2f"
+          description: The unique identifier of the SEO recommendation to update.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                recommendation:
+                  type: string
+                  description: The updated recommendation text.
+                  example: "Ensure all images have descriptive alt text for accessibility and SEO."
+                # Add other updatable fields here as per your updateRecommendation controller logic
+              required:
+                - recommendation # Assuming 'recommendation' field is required for update
+      responses:
+        '200':
+          description: Recommendation successfully updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SEORecommendation' # Returns the updated recommendation object
+        '400':
+          description: Invalid input or missing fields.
+        '401':
+          description: Unauthorized.
+        '404':
+          description: Recommendation not found.
+        '500':
+          description: Internal server error.
+
+    delete:
+      summary: Delete a specific SEO recommendation by ID
+      tags: [SEO Recommendations]
+      security:
+        - ClerkAuth: [] # Requires authentication
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            example: "66710b1a0e8d0e7a4b0d1e2f"
+          description: The unique identifier of the SEO recommendation to delete.
+      responses:
+        '200':
+          description: Recommendation successfully deleted.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Recommendation deleted successfully."
+        '401':
+          description: Unauthorized.
+        '404':
+          description: Recommendation not found.
+        '500':
+          description: Internal server error.
