@@ -1,4 +1,4 @@
-import Website from "../models/Website.js";
+import Website from "../models/website.js";
 
 // GET /api/websites  
 export const getAllWebsites = async (req, res) => {

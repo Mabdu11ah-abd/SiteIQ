@@ -3,7 +3,7 @@ import crypto from "crypto";
 import axios from "axios";
 import dotenv from "dotenv";
 import User from "../models/User.js";
-import Website from "../models/Website.js";
+import Website from "../models/website.js";
 
 dotenv.config();
 
