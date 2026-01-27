@@ -1,12 +1,9 @@
 // controllers/techstackChatController.js
-import axios from "axios";
 import dotenv from "dotenv";
 import Conversation from "../models/techstackChatModel.js";
+import { callOpenAI } from "../utils/openaiClient.js";
 
 dotenv.config();
-
-const OR_API_KEY = process.env.OPENROUTER_API_KEY?.trim();
-const OR_MODEL_URL = "https://openrouter.ai/api/v1/chat/completions";
 
 // Handle the improvement response for a conversation
 export async function handleImproveChat(req, res) {
@@ -42,25 +39,8 @@ export async function handleImproveChat(req, res) {
       { role: "user", content: message }
     ];
 
-    // Send the request to OpenRouter API for generating a response from the AI model
-    const response = await axios.post(
-      OR_MODEL_URL,
-      {
-        model: "mistralai/mistral-7b-instruct",  // Use a model for instructing AI
-        messages,
-        temperature: 0.7,
-        max_tokens: 800
-      },
-      {
-        headers: {
-          Authorization: `Bearer ${OR_API_KEY}`,
-          "Content-Type": "application/json"
-        }
-      }
-    );
-
-    // Extract the AI's response
-    const aiReply = response.data.choices[0].message.content;
+    // Send the request to OpenAI for generating a response
+    const aiReply = await callOpenAI(messages, { max_tokens: 800 });
 
     // Update conversation history with user and assistant messages
     conversation.history.push({ role: "user", content: message });
@@ -77,7 +57,7 @@ export async function handleImproveChat(req, res) {
     });
   } catch (error) {
     // Handle error (log it and return a message)
-    console.error("AI chat error:", error?.response?.data || error.message);
+    console.error("AI chat error:", error?.message);
     res.status(500).json({ error: "AI chat failed" });
   }
 }

@@ -1,9 +1,95 @@
 // backend/utils/openaiClient.js
 import OpenAI from "openai";
+import dotenv from "dotenv";
+dotenv.config();
 
 const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
 });
+
+// Rough token estimation: ~4 characters per token for English text
+const CHARS_PER_TOKEN = 4;
+const MAX_INPUT_TOKENS = 12000; // Leave buffer for response (model limit is 16k)
+const MAX_INPUT_CHARS = MAX_INPUT_TOKENS * CHARS_PER_TOKEN;
+
+/**
+ * Truncate a JSON object to fit within token limits.
+ * Prioritizes keeping essential data and truncates large arrays/objects.
+ * @param {Object} data - The data object to truncate
+ * @param {number} maxChars - Maximum characters allowed
+ * @returns {Object} - Truncated data object
+ */
+export const truncateDataForTokenLimit = (data, maxChars = MAX_INPUT_CHARS / 2) => {
+    if (!data) return data;
+    
+    const jsonStr = JSON.stringify(data, null, 2);
+    
+    // If already within limits, return as-is
+    if (jsonStr.length <= maxChars) {
+        return data;
+    }
+    
+    console.warn(`⚠️ Data exceeds token limit (${jsonStr.length} chars). Truncating to ${maxChars} chars...`);
+    
+    // Deep clone to avoid mutating original
+    const truncated = JSON.parse(JSON.stringify(data));
+    
+    // Helper to truncate arrays to first N items
+    const truncateArrays = (obj, maxItems = 10) => {
+        if (Array.isArray(obj)) {
+            const truncatedArr = obj.slice(0, maxItems);
+            if (obj.length > maxItems) {
+                truncatedArr.push({ _truncated: `... and ${obj.length - maxItems} more items` });
+            }
+            return truncatedArr.map(item => truncateArrays(item, maxItems));
+        } else if (obj && typeof obj === 'object') {
+            const result = {};
+            for (const key of Object.keys(obj)) {
+                result[key] = truncateArrays(obj[key], maxItems);
+            }
+            return result;
+        }
+        return obj;
+    };
+    
+    // Helper to truncate long strings
+    const truncateStrings = (obj, maxLen = 500) => {
+        if (typeof obj === 'string' && obj.length > maxLen) {
+            return obj.substring(0, maxLen) + '... [truncated]';
+        } else if (Array.isArray(obj)) {
+            return obj.map(item => truncateStrings(item, maxLen));
+        } else if (obj && typeof obj === 'object') {
+            const result = {};
+            for (const key of Object.keys(obj)) {
+                result[key] = truncateStrings(obj[key], maxLen);
+            }
+            return result;
+        }
+        return obj;
+    };
+    
+    // Apply truncation strategies progressively
+    let result = truncateArrays(truncated, 15);
+    let resultStr = JSON.stringify(result, null, 2);
+    
+    if (resultStr.length > maxChars) {
+        result = truncateArrays(result, 8);
+        resultStr = JSON.stringify(result, null, 2);
+    }
+    
+    if (resultStr.length > maxChars) {
+        result = truncateStrings(result, 300);
+        resultStr = JSON.stringify(result, null, 2);
+    }
+    
+    if (resultStr.length > maxChars) {
+        result = truncateArrays(result, 5);
+        result = truncateStrings(result, 150);
+    }
+    
+    console.log(`✅ Data truncated to ${JSON.stringify(result, null, 2).length} chars`);
+    return result;
+};
 
 /**
  * Send a chat completion request, with automatic fallback.

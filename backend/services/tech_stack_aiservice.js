@@ -1,9 +1,7 @@
 import axios from "axios";
 import dotenv from "dotenv";
+import { callOpenAI } from "../utils/openaiClient.js";
 dotenv.config();
-
-const OR_API_KEY = process.env.OPENROUTER_API_KEY?.trim();
-const OR_MODEL_URL = "https://openrouter.ai/api/v1/chat/completions";
 
 //function for improving website
 export async function analyzeWebsite(metaTags, scripts, useCase, seoFocused, performanceFocused) {
@@ -15,7 +13,7 @@ export async function analyzeWebsite(metaTags, scripts, useCase, seoFocused, per
         console.log("User Preferences - SEO Focused:", seoFocused);
         console.log("User Preferences - Performance Focused:", performanceFocused);
 
-        if (!OR_API_KEY) throw new Error("❌ Missing OpenRouter API Key");
+        if (!process.env.OPENAI_API_KEY) throw new Error("❌ Missing OpenAI API Key");
 const prompt = `
 # System Role
 You are a highly experienced web solutions architect and AI assistant specializing in **web application architecture, frontend/backend frameworks**, **SEO best practices**, **performance optimization**, **cloud infrastructure**, and **devops tools**. Your primary task is to help analyze a website's existing metadata, frontend stack, and user preferences to provide **tailored recommendations** for the most suitable **technology stack** and **infrastructure solutions**.
@@ -125,27 +123,10 @@ Return **only valid JSON** in this structure:
 - Performance Focused: ${performanceFocused ? "Yes" : "No"}
 `;
 
-        // works fine 
-      //  console.log("OR_API_KEY:", OR_API_KEY); // Debugging line to check if API key is loaded
-
-
-        const response = await axios.post(
-            OR_MODEL_URL,
-            {
-                model: "mistralai/mistral-7b-instruct",
-                messages: [{ role: "user", content: prompt }],
-                temperature: 0.7,
-                max_tokens: 1000
-            },
-            {
-                headers: {
-                    Authorization: `Bearer ${OR_API_KEY}`,
-                    "Content-Type": "application/json"
-                }
-            }
+        const rawText = await callOpenAI(
+            [{ role: "user", content: prompt }],
+            { max_tokens: 1000 }
         );
-
-        const rawText = response.data.choices[0].message.content;
         console.log("✅ Raw AI Response:", rawText);
 
         const jsonMatch = rawText.match(/{[\s\S]*}/);
@@ -154,8 +135,7 @@ Return **only valid JSON** in this structure:
         let parsedResponse;
         try {
             parsedResponse = JSON.parse(jsonMatch[0]);
-            detectRedundantDatabases(parsedResponse); // ✅ Check for overlap
-          //   console.log("✅ Parsed AI Response:", parsedResponse);
+            detectRedundantDatabases(parsedResponse);
             return parsedResponse;
         } catch (error) {
             console.error("❌ Failed to parse JSON. Raw extracted block:\n", jsonMatch[0]);
@@ -163,8 +143,8 @@ Return **only valid JSON** in this structure:
         }
 
     } catch (error) {
-        console.error("❌ OpenRouter API Error:", error?.response?.data || error.message);
-        return { error: "Failed to analyze website using OpenRouter" };
+        console.error("❌ OpenAI API Error:", error?.message);
+        return { error: "Failed to analyze website using OpenAI" };
     }
 }
 
@@ -177,9 +157,8 @@ export async function recommendingTechStack(useCase, seoFocused, performanceFocu
         console.log("User Preferences - Use Case:", useCase);
         console.log("User Preferences - SEO Focused:", seoFocused);
         console.log("User Preferences - Performance Focused:", performanceFocused);
-        console.log("OR_API_KEY:", OR_API_KEY); // Debugging line to check if API key is loaded
 
-        if (!OR_API_KEY) throw new Error("❌ Missing OpenRouter API Key");
+        if (!process.env.OPENAI_API_KEY) throw new Error("❌ Missing OpenAI API Key");
 const prompt = `
 # System Role
 You are a highly experienced web solutions architect and AI assistant specializing in **web application architecture, frontend/backend frameworks**, **SEO best practices**, **performance optimization**, **cloud infrastructure**, and **devops tools**. Your primary task is to help analyze a website's existing metadata, frontend stack, and user preferences to provide **tailored recommendations** for the most suitable **technology stack** and **infrastructure solutions**.
@@ -275,26 +254,10 @@ Return **only valid JSON** in this structure:
 - Performance Focused: ${performanceFocused ? "Yes" : "No"}
 `;
 
-
-
-
-        const response = await axios.post(
-            OR_MODEL_URL,
-            {
-                model: "mistralai/mistral-7b-instruct",
-                messages: [{ role: "user", content: prompt }],
-                temperature: 0.7,
-                max_tokens: 1000
-            },
-            {
-                headers: {
-                    Authorization: `Bearer ${OR_API_KEY}`,
-                    "Content-Type": "application/json"
-                }
-            }
+        const rawText = await callOpenAI(
+            [{ role: "user", content: prompt }],
+            { max_tokens: 1000 }
         );
-
-        const rawText = response.data.choices[0].message.content;
         console.log("✅ Raw AI Response:", rawText);
 
         const jsonMatch = rawText.match(/{[\s\S]*}/);
@@ -303,8 +266,7 @@ Return **only valid JSON** in this structure:
         let parsedResponse;
         try {
             parsedResponse = JSON.parse(jsonMatch[0]);
-            detectRedundantDatabases(parsedResponse); // ✅ Check for overlap
-          //   console.log("✅ Parsed AI Response:", parsedResponse);
+            detectRedundantDatabases(parsedResponse);
             return parsedResponse;
         } catch (error) {
             console.error("❌ Failed to parse JSON. Raw extracted block:\n", jsonMatch[0]);
@@ -312,8 +274,8 @@ Return **only valid JSON** in this structure:
         }
 
     } catch (error) {
-        console.error("❌ OpenRouter API Error:", error?.response?.data || error.message);
-        return { error: "Failed to analyze website using OpenRouter" };
+        console.error("❌ OpenAI API Error:", error?.message);
+        return { error: "Failed to analyze website using OpenAI" };
     }
 }
 

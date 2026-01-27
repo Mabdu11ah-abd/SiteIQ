@@ -1,7 +1,8 @@
 import axios from "axios";
 import SeoReport from "../models/seoModel.js";
 import SeoRecommendation from "../models/seoRecommendation.js";
-import Website from "../models/website.js"; //new
+import Website from "../models/website.js";
+import { callOpenAI, truncateDataForTokenLimit } from "../utils/openaiClient.js";
 
 
 
@@ -35,10 +36,9 @@ const generateLightHouseRecommendation = async (req, res) => {
       });
     }
 
-    console.log("✅ Step 4: Validating Novita API key...");
-    const NOVITA_API_KEY = process.env.NOVITA_API_KEY;
-    if (!NOVITA_API_KEY) {
-      console.error("❌ Missing Novita API key in environment variables.");
+    console.log("✅ Step 4: Validating OpenAI API key...");
+    if (!process.env.OPENAI_API_KEY) {
+      console.error("❌ Missing OpenAI API key in environment variables.");
       return res.status(500).json({ error: "Server configuration error." });
     }
 
@@ -156,37 +156,23 @@ const generateLightHouseRecommendation = async (req, res) => {
 🧠 Be direct, technical, and thorough. Avoid vague advice. Emphasize actionable strategies that developers can immediately use. Only include meaningful recommendations—skip audits that score 1.0 unless there's still room for optimization.
 
 Lighthouse Report JSON:
-${JSON.stringify(simplifiedData, null, 2)}
+${JSON.stringify(truncateDataForTokenLimit(simplifiedData, 20000), null, 2)}
 `; // FIX HERE: Changed reportData to simplifiedData and ensured backticks are correct
 
-    console.log("✅ Step 7: Sending request to Novita AI...");
-    const response = await axios.post(
-      "https://api.novita.ai/v3/openai/chat/completions",
-      {
-        model: "deepseek/deepseek_v3",
-        messages: [{ role: "user", content: prompt }],
-        max_tokens: 1000, // Increased for more detailed technical recommendations
-        stream: false,
-      },
-      {
-        headers: {
-          // FIX HERE: Use backticks for the template literal string
-          Authorization: `Bearer ${NOVITA_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-      }
+    console.log("✅ Step 7: Sending request to OpenAI...");
+    const lighthouseRecommendationText = await callOpenAI(
+      [{ role: "user", content: prompt }],
+      { max_tokens: 1000 }
     );
 
-    if (!response.data.choices || response.data.choices.length === 0) {
+    if (!lighthouseRecommendationText) {
       console.error("❌ AI model returned empty response.");
       return res
         .status(500)
         .json({ error: "AI model returned an empty response." });
     }
 
-    console.log("✅ Step 8: Extracting recommendation text...");
-    const lighthouseRecommendationText =
-      response.data.choices[0].message.content.trim();
+    console.log("✅ Step 8: Extracted recommendation text...");
 
     console.log("✅ Step 9: Saving recommendation to database...");
     const newRecommendation = new SeoRecommendation({
@@ -399,7 +385,7 @@ You are provided with an SEO scoring report containing detailed metrics represen
 
     Here is the SEO scoring data you must analyze:
 
-${JSON.stringify(scoresArray, null, 2)}
+${JSON.stringify(truncateDataForTokenLimit(scoresArray, 20000), null, 2)}
   `;
 }
 
@@ -440,10 +426,9 @@ const generateSEORecommendations = async (req, res) => {
       return res.status(404).json({ error: "SEO report not found for this website." });
     }
 
-    // Validate Novita API key early
-    const NOVITA_API_KEY = process.env.NOVITA_API_KEY;
-    if (!NOVITA_API_KEY) {
-      return res.status(500).json({ error: "Missing Novita API key." });
+    // Validate OpenAI API key early
+    if (!process.env.OPENAI_API_KEY) {
+      return res.status(500).json({ error: "Missing OpenAI API key." });
     }
 
     // Prepare data for the single prompt
@@ -601,7 +586,7 @@ Be extremely precise and data-driven, directly referencing the scoring data prov
 Here is the SEO scoring data you must analyze:
 
 \`\`\`json
-${JSON.stringify(seoScoresData, null, 2)}
+${JSON.stringify(truncateDataForTokenLimit(seoScoresData, 15000), null, 2)}
 \`\`\`
 
 ---
@@ -653,7 +638,7 @@ Go through the following specific audit results. For each audit that has a score
 Here are the audit results you must analyze. Pay close attention to the 'score', 'displayValue', and 'details' fields for deeper insights.
 
 \`\`\`json
-${JSON.stringify(lighthouseAnalysisData.audits, null, 2)}
+${JSON.stringify(truncateDataForTokenLimit(lighthouseAnalysisData.audits, 15000), null, 2)}
 \`\`\`
 
 ---
@@ -666,27 +651,15 @@ No Lighthouse report data was provided for analysis.
 `;
     }
 
-    console.log("✅ Step 6: Sending combined data to Novita API...");
+    console.log("✅ Step 6: Sending combined data to OpenAI...");
     let aiRecommendationText = "";
     try {
-      const novitaResponse = await axios.post(
-        "https://api.novita.ai/v3/openai/chat/completions",
-        {
-          model: "deepseek/deepseek_v3",
-          messages: [{ role: "user", content: combinedPrompt }],
-          max_tokens: 2500, // Increased max_tokens significantly to accommodate both reports
-          stream: false,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${NOVITA_API_KEY}`,
-            "Content-Type": "application/json",
-          },
-        }
+      aiRecommendationText = await callOpenAI(
+        [{ role: "user", content: combinedPrompt }],
+        { max_tokens: 2500 }
       );
-      aiRecommendationText = novitaResponse.data?.choices?.[0]?.message?.content?.trim() || "";
     } catch (apiError) {
-      console.error("❌ Error generating combined recommendations from Novita API:", apiError?.response?.data || apiError.message);
+      console.error("❌ Error generating combined recommendations from OpenAI:", apiError?.message);
       aiRecommendationText = "An error occurred while generating recommendations from the AI.";
     }
 
