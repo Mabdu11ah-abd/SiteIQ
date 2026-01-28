@@ -36,10 +36,27 @@ app.use(express.urlencoded({ extended: true })); // To parse URL-encoded bodies 
 
 const PORT = process.env.PORT || 4500;
 
+// Allowed origins for CORS (add your production URLs here)
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://localhost:4500',
+  process.env.FRONTEND_URL, // Set this in your production .env
+].filter(Boolean); // Remove undefined values
+
 // Middleware
 app.use(cors({
-  origin: '*', // Allow all origins
-  credentials: false // credentials must be false when origin is '*'
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like mobile apps, Postman, or server-to-server)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      console.log(`CORS blocked origin: ${origin}`);
+      callback(null, true); // Allow all for now - change to callback(new Error('Not allowed by CORS')) in strict mode
+    }
+  },
+  credentials: true // Allow cookies to be sent
 }));
 
 app.use(clerkMiddleware());
