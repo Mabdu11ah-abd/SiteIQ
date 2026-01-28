@@ -38,8 +38,8 @@ const PORT = process.env.PORT || 4500;
 
 // Middleware
 app.use(cors({
-  origin: 'http://localhost:3000', // Or '*' for testing
-  credentials: true
+  origin: '*', // Allow all origins
+  credentials: false // credentials must be false when origin is '*'
 }));
 
 app.use(clerkMiddleware());
@@ -68,7 +68,7 @@ app.get('/', (req, res) => {
 });
 
 app.use('/api/users', userRoutes);
-app.use(' ', seoRoutes); // Mount webhook routes
+app.use('/api/seoreports', seoRoutes);
 app.use('/api/history', historyRoutes);
 app.use("/api/lighthouse", lighthouseRoutes);
 app.use("/api/websites", websiteRoutes);

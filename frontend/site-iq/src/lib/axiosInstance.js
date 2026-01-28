@@ -2,7 +2,7 @@
 import axios from 'axios';
 
 const axiosInstance = axios.create({
-  baseURL: 'http://localhost:4500/api', // fixed the typo: 'locahost' → 'localhost'
+  baseURL: 'https://siteiq.onrender.com/api/', // fixed the typo: 'locahost' → 'localhost'
   headers: {
     'Content-Type': 'application/json',
   },
