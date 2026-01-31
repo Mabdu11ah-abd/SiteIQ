@@ -18,11 +18,12 @@ const runLighthouse = async (url) => {
       ],
     };
 
-    // Let Puppeteer find its own bundled Chrome
-    // Only set executablePath if explicitly provided
-    if (process.env.PUPPETEER_EXECUTABLE_PATH) {
-      launchOptions.executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
-    }
+    // DO NOT set executablePath - remove this entire block:
+    // if (process.env.CHROME_EXECUTABLE_PATH) {
+    //   launchOptions.executablePath = process.env.CHROME_EXECUTABLE_PATH;
+    // } else if (process.env.PUPPETEER_EXECUTABLE_PATH) {
+    //   launchOptions.executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
+    // }
 
     browser = await puppeteer.launch(launchOptions);
 
@@ -33,7 +34,6 @@ const runLighthouse = async (url) => {
     };
 
     const runnerResult = await lighthouse(url, options);
-
     return runnerResult.lhr;
   } catch (error) {
     console.error('Lighthouse error:', error);
