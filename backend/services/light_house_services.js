@@ -1,12 +1,10 @@
 import lighthouse from 'lighthouse';
 import puppeteer from 'puppeteer';
 
-
 const runLighthouse = async (url) => {
   let browser;
   
   try {
-    // Launch Puppeteer with production-friendly configuration
     const launchOptions = {
       headless: true,
       args: [
@@ -16,15 +14,13 @@ const runLighthouse = async (url) => {
         '--disable-accelerated-2d-canvas',
         '--no-first-run',
         '--no-zygote',
-        '--single-process', // Required for some hosting environments
         '--disable-gpu'
       ],
     };
 
-    // Use system Chrome if available (common in production)
-    if (process.env.CHROME_EXECUTABLE_PATH) {
-      launchOptions.executablePath = process.env.CHROME_EXECUTABLE_PATH;
-    } else if (process.env.PUPPETEER_EXECUTABLE_PATH) {
+    // Let Puppeteer find its own bundled Chrome
+    // Only set executablePath if explicitly provided
+    if (process.env.PUPPETEER_EXECUTABLE_PATH) {
       launchOptions.executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
     }
 
@@ -36,7 +32,6 @@ const runLighthouse = async (url) => {
       port: (new URL(browser.wsEndpoint())).port,
     };
 
-    // Run Lighthouse
     const runnerResult = await lighthouse(url, options);
 
     return runnerResult.lhr;
@@ -49,6 +44,5 @@ const runLighthouse = async (url) => {
     }
   }
 };
-
 
 export default { runLighthouse };
