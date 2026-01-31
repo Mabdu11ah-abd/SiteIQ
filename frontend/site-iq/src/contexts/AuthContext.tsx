@@ -93,7 +93,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         localStorage.setItem('token', data.token);
         setToken(data.token);
         setUser(data.user);
-        router.push('/dashboard');
+        router.push('/user-dashboard');
       }
     } catch (error: any) {
       throw error;
