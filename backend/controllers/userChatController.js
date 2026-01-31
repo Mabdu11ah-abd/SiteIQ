@@ -4,14 +4,14 @@
 import Conversation from "../models/techstackChatModel.js"; // ✅ Updated model name
 
 export async function getUserChats(req, res) {
-  const clerkUserId = req.auth?.userId;
+  const userId = req.userId;
 
-  if (!clerkUserId) {
+  if (!userId) {
     return res.status(401).json({ error: "Unauthorized" });
   }
 
   try {
-    const chats = await Conversation.find({ clerkUserId }).sort({ lastUpdated: -1 });
+    const chats = await Conversation.find({ clerkUserId: userId }).sort({ lastUpdated: -1 });
     if (!chats.length) {
       return res.status(404).json({ message: "No conversations found" });
     }
@@ -24,15 +24,15 @@ export async function getUserChats(req, res) {
 }
 
 export async function deleteUserChat(req, res) {
-  const { id } = req.params; // MongoDB ObjectId
-  const clerkUserId = req.auth?.userId;
+  const { id } = req.params;
+  const userId = req.userId;
 
-  if (!clerkUserId) {
+  if (!userId) {
     return res.status(401).json({ error: "Unauthorized" });
   }
 
   try {
-    const result = await Conversation.deleteOne({ _id: id, clerkUserId });
+    const result = await Conversation.deleteOne({ _id: id, clerkUserId: userId });
 
     if (result.deletedCount === 0) {
       return res.status(404).json({ message: "Conversation not found" });
@@ -47,15 +47,15 @@ export async function deleteUserChat(req, res) {
 
 // Fetch a single conversation with all messages
 export async function getChatHistory(req, res) {
-  const { id } = req.params; // Conversation ID
-  const clerkUserId = req.auth?.userId;
+  const { id } = req.params;
+  const userId = req.userId;
 
-  if (!clerkUserId) {
+  if (!userId) {
     return res.status(401).json({ error: "Unauthorized" });
   }
 
   try {
-    const chat = await Conversation.findOne({ _id: id, clerkUserId });
+    const chat = await Conversation.findOne({ _id: id, clerkUserId: userId });
     if (!chat) {
       return res.status(404).json({ message: "Conversation not found" });
     }
@@ -68,11 +68,11 @@ export async function getChatHistory(req, res) {
 
 // Add a new message to an existing conversation
 export async function addMessageToChat(req, res) {
-  const { id } = req.params; // Conversation ID
-  const clerkUserId = req.auth?.userId;
+  const { id } = req.params;
+  const userId = req.userId;
   const { message } = req.body;
 
-  if (!clerkUserId) {
+  if (!userId) {
     return res.status(401).json({ error: "Unauthorized" });
   }
   if (!message) {
@@ -81,7 +81,7 @@ export async function addMessageToChat(req, res) {
 
   try {
     const chat = await Conversation.findOneAndUpdate(
-      { _id: id, clerkUserId },
+      { _id: id, clerkUserId: userId },
       {
         $push: { messages: message },
         $set: { lastUpdated: new Date() }

@@ -3,14 +3,12 @@ import {
     getAllWebsites,
     getWebsiteById
 } from "../controllers/websiteController.js";
+import authenticateJWT from "../middleware/authenticateJWT.js";
 
 const router = express.Router();
 
-
-// GET all websites for the user
-router.get("/", getAllWebsites);
-
-// GET one website by ID
-router.get("/:id", getWebsiteById);
+// All website routes require authentication
+router.get("/", authenticateJWT, getAllWebsites);
+router.get("/:id", authenticateJWT, getWebsiteById);
 
 export default router;

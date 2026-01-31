@@ -153,11 +153,11 @@ function scoreSeoResponse(rawResponse, keyword, domain) {
 const generateAndScoreReport = async (req, res) => {
     console.log("hit the controller");
     const { phrase, websiteId } = req.body;
-    const clerkUserId = req.auth?.userId;
+    const userId = req.userId;
 
-    if (!phrase || !websiteId || !clerkUserId) {
+    if (!phrase || !websiteId || !userId) {
         return res.status(400).json({
-            error: "Missing required fields (phrase, websiteId, clerkUserId)",
+            error: "Missing required fields (phrase, websiteId, userId)",
         });
     }
 
@@ -312,7 +312,7 @@ const generateAndScoreReport = async (req, res) => {
 // Delete Report/Phrase
 const deleteReport = async (req, res) => {
     const { jid } = req.params;
-    const clerkUserId = req.auth.userId;
+    const userId = req.userId;
 
     if (!jid) {
         return res.status(400).json({ error: "Job ID (jid) is required" });
@@ -321,7 +321,7 @@ const deleteReport = async (req, res) => {
     try {
         const report = await SeoReport.findOne({
             "phraseResults.jid": jid,
-            clerkUserId,
+            clerkUserId: userId,
         });
 
         if (!report) {
@@ -356,8 +356,8 @@ const deleteReport = async (req, res) => {
 // Return Report
 const returnReport = async (req, res) => {
     const { jid } = req.params;
-    const clerkUserId = req.auth.userId;
-    console.log(clerkUserId);
+    const userId = req.userId;
+    console.log(userId);
     if (!jid) {
         return res.status(400).json({ error: "Job ID not included in parameter" });
     }
@@ -365,7 +365,7 @@ const returnReport = async (req, res) => {
     try {
         const report = await SeoReport.findOne({
             "phraseResults.jid": jid,
-            clerkUserId,
+            clerkUserId: userId,
         }).populate("website");
 
         if (!report) {

@@ -1,4 +1,4 @@
-import { ClerkProvider } from '@clerk/nextjs';
+import { AuthProvider } from '@/contexts/AuthContext';
 import "./globals.css"
 import { Inter } from "next/font/google"
 import { ReactNode } from "react"
@@ -16,7 +16,7 @@ export const metadata = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <ClerkProvider>
+    <AuthProvider>
       <html lang="en"  className="">
         <body className={inter.className}>
           <QueryProvider>
@@ -28,6 +28,6 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           </QueryProvider>
         </body>
       </html>
-    </ClerkProvider>
+    </AuthProvider>
   );
 }

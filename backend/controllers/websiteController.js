@@ -3,7 +3,7 @@ import Website from "../models/website.js";
 // GET /api/websites  
 export const getAllWebsites = async (req, res) => {
     try {
-        const userId = req.auth?.userId;
+        const userId = req.userId;
 
         if (!userId) return res.status(401).json({ error: "Unauthorized" });
 
@@ -19,7 +19,7 @@ export const getAllWebsites = async (req, res) => {
 // GET /api/websites/:id  
 export const getWebsiteById = async (req, res) => {
     try {
-        const userId = req.auth?.userId;
+        const userId = req.userId;
         const { id } = req.params;
 
         const site = await Website
@@ -48,8 +48,8 @@ export const getWebsiteById = async (req, res) => {
 // POST /api/websites  
 export const createWebsite = async (req, res) => {
     try {
-        const userId = req.auth?.userId,
-            { domain } = req.body;
+        const userId = req.userId;
+        const { domain } = req.body;
         if (!domain) return res.status(400).json({ error: "Missing domain." });
 
         const exists = await Website.findOne({ clerkuserId: userId, domain });
@@ -66,8 +66,8 @@ export const createWebsite = async (req, res) => {
 // DELETE /api/websites/:id  
 export const deleteWebsite = async (req, res) => {
     try {
-        const userId = req.auth?.userId,
-            { id } = req.params;
+        const userId = req.userId;
+        const { id } = req.params;
         const deleted = await Website.findOneAndDelete({ _id: id, clerkuserId: userId });
         if (!deleted) return res.status(404).json({ error: "Website not found." });
         res.json({ message: "Deleted." });

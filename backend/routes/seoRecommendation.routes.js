@@ -1,10 +1,9 @@
 // routes/seoRecommendation.routes.js
 
 import express from 'express';
-
+import authenticateJWT from '../middleware/authenticateJWT.js';
 import checkSubscriptionLimit from '../middleware/checkSubscriptionLimit.js';
 import incrementUsage from '../utils/incrementUsage.js';
-
 import {
   generateSEORecommendations,
   getSEORecommendations,
@@ -16,32 +15,21 @@ import {
 
 const router = express.Router();
 
-// Middleware to simulate authentication (for testing)
-
-// CREATE (Generate recommendations) with usage limit + increment
+// All routes require authentication
 router.post(
     '/generate/:websiteId',
+    authenticateJWT,
     checkSubscriptionLimit('seo'),  
     async (req, res, next) => {
-      await incrementUsage(req.auth.userId, 'seo');  // call utility
+      await incrementUsage(req.userId, 'seo');
       next();
     },
     generateSEORecommendations
   );
-  
 
-router.post(
-    '/generate-lighthouse',
-    generateLightHouseRecommendation      
-  );
-
-// READ ONE recommendation by ID
-router.get('/:websiteId', getSEORecommendations);
-
-// UPDATE a recommendation by ID
-router.put('/:id', updateRecommendation);
-
-// DELETE a recommendation by ID
-router.delete('/:id', deleteRecommendation);
+router.post('/generate-lighthouse', authenticateJWT, generateLightHouseRecommendation);
+router.get('/:websiteId', authenticateJWT, getSEORecommendations);
+router.put('/:id', authenticateJWT, updateRecommendation);
+router.delete('/:id', authenticateJWT, deleteRecommendation);
 
 export default router;

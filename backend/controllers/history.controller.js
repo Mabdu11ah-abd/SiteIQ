@@ -4,16 +4,16 @@ import WebsiteHistory from '../models/WebsiteHistory.js';
 // ✅ CREATE a new website history record
 const createHistory = async (req, res) => {
   try {
-    const clerkUserId = req.auth.userId;
+    const userId = req.userId;
 
     const { url, seoReport, seoRecommendations, action } = req.body;
 
-    if (!clerkUserId || !url || !action) {
+    if (!userId || !url || !action) {
       return res.status(400).json({ error: 'userId, url, and action are required.' });
     }
 
     const newHistory = new WebsiteHistory({
-      userId,
+      clerkUserId: userId,
       url,
       seoReport,
       seoRecommendations,
@@ -31,11 +31,11 @@ const createHistory = async (req, res) => {
 // 📄 READ ALL histories for a user
 const getUserHistory = async (req, res) => {
   try {
-    const clerkUserId = req.auth.userId;
-    if (!clerkUserId) {
+    const userId = req.userId;
+    if (!userId) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
-    const history = await WebsiteHistory.find({ clerkUserId }).sort({ createdAt: -1 });
+    const history = await WebsiteHistory.find({ clerkUserId: userId }).sort({ createdAt: -1 });
 
     if (!history.length) {
       return res.status(404).json({ error: 'No history found for this user.' });

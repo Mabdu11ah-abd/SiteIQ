@@ -36,7 +36,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { ChevronDown } from "lucide-react";
-import { SignOutButton } from "@clerk/nextjs";
+import { useAuth } from "@/contexts/AuthContext";
 
 const seoMenuItems = [
   {
@@ -93,6 +93,8 @@ const accountItems = [
 ];
 
 export function AppSidebar() {
+  const { logout } = useAuth();
+  
   return (
     <Sidebar className="border-r border-blue-200">
       <SidebarHeader className="border-b border-blue-200 bg-gradient-to-r from-blue-50 to-white">
@@ -205,11 +207,12 @@ export function AppSidebar() {
 
         {/* Account Section */}
         <SidebarFooter className="flex justify-center items-center mt-auto pb-6">
-          <SignOutButton>
-            <Button className="w-40 h-9 bg-slate-900 text-white hover:bg-slate-700">
-              Logout
-            </Button>
-          </SignOutButton>
+          <Button 
+            className="w-40 h-9 bg-slate-900 text-white hover:bg-slate-700"
+            onClick={logout}
+          >
+            Logout
+          </Button>
         </SidebarFooter>
       </SidebarContent>
     </Sidebar>

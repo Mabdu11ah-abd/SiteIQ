@@ -1,6 +1,7 @@
 import { Inter } from "next/font/google";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
 import "@/app/globals.css"; // adjust if your path is different
 
 const inter = Inter({ subsets: ["latin"] });
@@ -13,6 +14,7 @@ export const metadata = {
 
 export default function DashboardLayout({ children }) {
     return (
+        <ProtectedRoute>
             <div className={inter.className}>
                 <SidebarProvider>
                     <div className="flex min-h-screen w-full">
@@ -23,6 +25,7 @@ export default function DashboardLayout({ children }) {
                         </main>
                     </div>
                 </SidebarProvider>
-            </div>
+            </div>
+        </ProtectedRoute>
     );
 }

@@ -6,17 +6,14 @@ import {
     getChatHistory,
     getChatMessage
 } from "../controllers/chatController.js";
+import authenticateJWT from "../middleware/authenticateJWT.js";
 
 const router = express.Router();
 
-// — send a new message & AI reply
-router.post("/",  handleChatMessage);
-
-// — fetch the entire chat history array
-router.get("/:websiteId",  getChatHistory);
-
-// — fetch a single message by its index
-router.get("/:websiteId/:index",  getChatMessage);
+// All chat routes require authentication
+router.post("/", authenticateJWT, handleChatMessage);
+router.get("/:websiteId", authenticateJWT, getChatHistory);
+router.get("/:websiteId/:index", authenticateJWT, getChatMessage);
 
 
 

@@ -5,15 +5,15 @@ const checkSubscriptionLimit = (type) => {
   return async (req, res, next) => {
     try {
       console.log("✅ Step 1: Extracting user ID from auth...");
-      const clerkUserId = req.auth.userId;
-      console.log("Clerk User ID:", clerkUserId);
+      const userId = req.userId;
+      console.log("User ID:", userId);
 
-      if (!clerkUserId) {
-        console.warn("❌ Missing auth context.");
-        return res.status(401).json({ message: "Unauthorized: Missing Clerk User ID" });
+      if (!userId) {
+        console.warn("\u274c Missing auth context.");
+        return res.status(401).json({ message: "Unauthorized: Missing User ID" });
       }
 
-      const user = await User.findOne({ clerkUserId });
+      const user = await User.findById(userId);
 
       if (!user) {
         console.warn("❌ User not found.");

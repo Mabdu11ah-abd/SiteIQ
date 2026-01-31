@@ -3,15 +3,14 @@ import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { Menu, X } from "lucide-react";
-// Import Clerk's useUser hook and SignOutButton
-import { useUser, SignOutButton } from "@clerk/nextjs";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Navbar = () => {
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  // Get the user's authentication status from Clerk
-  const { isSignedIn } = useUser();
+  // Get the user's authentication status from AuthContext
+  const { isAuthenticated, logout } = useAuth();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -29,6 +28,24 @@ const Navbar = () => {
   const toggleMobileMenu = () => {
     setMobileMenuOpen(!mobileMenuOpen);
   };
+
+  const handleLogout = () => {
+    logout();
+    setMobileMenuOpen(false);
+  };
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.scrollY > 10) {
+        setScrolled(true);
+      } else {
+        setScrolled(false);
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   return (
     <header
@@ -87,7 +104,7 @@ const Navbar = () => {
                   <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-accent transition-all duration-300 group-hover:w-full"></span>
                 </Link>
               </li>
-              {isSignedIn && ( // Conditionally render User Dashboard link if signed in
+              {isAuthenticated && ( // Conditionally render User Dashboard link if signed in
                 <li className="relative group">
                   <Link
                     href="/user-dashboard" // Link to user dashboard
@@ -102,16 +119,15 @@ const Navbar = () => {
           </nav>
 
           <div className="flex items-center gap-4">
-            {isSignedIn ? (
+            {isAuthenticated ? (
               // If user is signed in, show Logout button
-              <SignOutButton>
-                <Button
-                  variant="outline"
-                  className="flex hover:border-accent hover:text-accent hover:bg-transparent transition-all cursor-pointer"
-                >
-                  Logout
-                </Button>
-              </SignOutButton>
+              <Button
+                variant="outline"
+                className="flex hover:border-accent hover:text-accent hover:bg-transparent transition-all cursor-pointer"
+                onClick={handleLogout}
+              >
+                Logout
+              </Button>
             ) : (
               // If user is not signed in, show Login and Get Started buttons
               <>
@@ -120,10 +136,10 @@ const Navbar = () => {
                   className="flex hover:border-accent hover:text-accent hover:bg-transparent transition-all cursor-pointer"
                   asChild
                 >
-                  <Link href="/sign-in">Login</Link>
+                  <Link href="/login">Login</Link>
                 </Button>
                 <Button className="gradient-bg relative overflow-hidden group hidden sm:flex" asChild>
-                  <Link href="/sign-up">
+                  <Link href="/register">
                     <span className="relative z-10">Get Started</span>
                     <span className="absolute inset-0 bg-white opacity-0 group-hover:opacity-20 transition-opacity duration-300"></span>
                   </Link>
@@ -180,25 +196,23 @@ const Navbar = () => {
               About Us
             </Link>
             {/* Conditional rendering for mobile menu Login/Logout */}
-            {isSignedIn ? (
-              <SignOutButton>
-                <span // Use a span or div to make it clickable and style it like a link
-                  className="font-medium hover:text-accent transition-colors py-2 transform hover:translate-x-2 duration-200 cursor-pointer"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  Logout
-                </span>
-              </SignOutButton>
+            {isAuthenticated ? (
+              <span
+                className="font-medium hover:text-accent transition-colors py-2 transform hover:translate-x-2 duration-200 cursor-pointer"
+                onClick={handleLogout}
+              >
+                Logout
+              </span>
             ) : (
               <Link
-                href="/sign-in"
+                href="/login"
                 className="font-medium hover:text-accent transition-colors py-2 transform hover:translate-x-2 duration-200 cursor-pointer"
                 onClick={() => setMobileMenuOpen(false)}
               >
                 Login
               </Link>
             )}
-            {isSignedIn && ( // Conditionally render User Dashboard link in mobile menu if signed in
+            {isAuthenticated && ( // Conditionally render User Dashboard link in mobile menu if signed in
               <Link
                 href="/user-dashboard"
                 className="font-medium hover:text-accent transition-colors py-2 transform hover:translate-x-2 duration-200 cursor-pointer"

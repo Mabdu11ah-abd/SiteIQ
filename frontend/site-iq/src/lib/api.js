@@ -6,6 +6,24 @@ const api = axios.create({
   withCredentials: true,
 });
 
+// ✅ REQUEST INTERCEPTOR - Automatically add JWT token from localStorage
+api.interceptors.request.use(
+  async (config) => {
+    if (typeof window !== 'undefined') {
+      try {
+        const token = localStorage.getItem('token');
+        if (token) {
+          config.headers.Authorization = `Bearer ${token}`;
+        }
+      } catch (error) {
+        console.error('[API] Failed to get JWT token:', error);
+      }
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
 export default api;
 
 

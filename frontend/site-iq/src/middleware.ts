@@ -1,36 +1,59 @@
 // frontend/site-iq/src/middleware.ts
-import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
 
-// Define public routes that do not require authentication.
-// These patterns allow specific pages and their sub-paths (if applicable) to be accessible
-// to both authenticated and unauthenticated users.
-const isPublicRoute = createRouteMatcher([
-  '/', // The homepage/root landing page
-  '/aboutus', // Your about page
-  '/features', // Your features page
-  '/pricing', // Your pricing page
-  '/cancel', // Cancel page
-  '/privacy-policy', // Privacy policy page
-  '/terms-of-service', // Terms of service page
-  '/sign-in(.*)', // Clerk's sign-in routes
-  '/sign-up(.*)', // Clerk's sign-up routes
-  // Next.js static assets and internal routes should also be public
-  '/_next/static(.*)', // Static files (JS, CSS, images)
-  '/_next/image(.*)', // Next.js image optimization
-  '/favicon.ico', // Favicon
-]);
+// Define public routes that do not require authentication
+const publicRoutes = [
+  '/',
+  '/aboutus',
+  '/features',
+  '/pricing',
+  '/cancel',
+  '/privacy-policy',
+  '/terms-of-service',
+  '/login',
+  '/register',
+  '/sign-in',
+  '/sign-up',
+];
 
-// Apply the Clerk middleware.
-// For routes that are NOT public, protect them, meaning a user must be authenticated.
-export default clerkMiddleware(async (auth, req) => {
-  if (!isPublicRoute(req)) {
-    await auth.protect();
+// Helper function to check if a path is public
+function isPublicRoute(pathname: string): boolean {
+  return publicRoutes.some((route) => {
+    if (route === pathname) return true;
+    // Allow wildcard matching (e.g., /sign-in/*)
+    if (pathname.startsWith(route + '/')) return true;
+    return false;
+  });
+}
+
+export function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+
+  // Skip middleware for static files and Next.js internals
+  if (
+    pathname.startsWith('/_next/') ||
+    pathname.startsWith('/api/') ||
+    pathname.includes('.') // Skip files with extensions
+  ) {
+    return NextResponse.next();
   }
-});
 
-// Define the routes that the middleware should run on.
-// This is an optional optimization. If not specified, it runs on all routes.
-// We explicitly tell it to match all paths except API routes, static files handled by Next.js itself, etc.
+  // Allow public routes
+  if (isPublicRoute(pathname)) {
+    return NextResponse.next();
+  }
+
+  // Check for JWT token in cookies or could check localStorage via client-side routing
+  // Note: localStorage cannot be accessed in middleware, so we'll use a cookie-based approach
+  // or rely on the AuthContext to handle redirects on the client side
+  
+  // For now, let the client-side AuthContext handle authentication redirects
+  // Middleware will just pass through, and protected pages will check auth state
+  return NextResponse.next();
+}
+
+// Define the routes that the middleware should run on
 export const config = {
-  matcher: ['/((?!.+\.[\w]+$|_next).*)', '/', '/(api|trpc)(.*)'],
+  matcher: ['/((?!.+\\.[\\w]+$|_next).*)', '/', '/(api|trpc)(.*)'],
 };

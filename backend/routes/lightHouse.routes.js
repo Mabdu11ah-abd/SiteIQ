@@ -1,31 +1,21 @@
 // routes/seoReportRoutes.js
 import express from 'express';
-
 import {
-  analyzeWebsite,   // ✅ CREATE
-  getReport,        // 📄 READ ONE
-  getAllReports,    // 📄 READ ALL
-  updateReport,     // 📝 UPDATE
-  deleteReport      // ❌ DELETE
+  analyzeWebsite,
+  getReport,
+  getAllReports,
+  updateReport,
+  deleteReport
 } from '../controllers/lightHouse.controller.js';
+import authenticateJWT from "../middleware/authenticateJWT.js";
 
 const router = express.Router();
 
-// ✅ Apply mock authentication middleware globally
-
-// ✅ CREATE - Start analysis
-router.post('/analyze', analyzeWebsite);
-
-// 📄 READ ALL - Get all reports for logged-in user
-router.get('/', getAllReports);
-
-// 📄 READ ONE - Get specific report by ID
-router.get('/:id', getReport);
-
-// 📝 UPDATE - Update report by ID
-router.put('/:id', updateReport);
-
-// ❌ DELETE - Delete report by ID
-router.delete('/:id', deleteReport);
+// All lighthouse routes require authentication
+router.post('/analyze', authenticateJWT, analyzeWebsite);
+router.get('/', authenticateJWT, getAllReports);
+router.get('/:id', authenticateJWT, getReport);
+router.put('/:id', authenticateJWT, updateReport);
+router.delete('/:id', authenticateJWT, deleteReport);
 
 export default router;

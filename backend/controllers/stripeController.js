@@ -10,12 +10,12 @@ const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
  */
 export const createCheckoutSession = async (req, res) => {
   try {
-    if (!req.auth || !req.auth.userId) {
+    if (!req.userId) {
       return res.status(401).json({ error: 'Unauthorized: User not authenticated' });
     }
 
-    // Find user by clerkUserId (adjust field name as per your schema)
-    const user = await User.findOne({ clerkUserId: req.auth.userId });
+    // Find user by userId
+    const user = await User.findById(req.userId);
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
@@ -43,10 +43,10 @@ export const createCheckoutSession = async (req, res) => {
       }],
       success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/cancel`,
-      metadata: { userId: req.auth.userId },
+      metadata: { userId: req.userId },
     });
 
-    console.log(`Created checkout session for user ${req.auth.userId} with price ${prices.data[0].id}`);
+    console.log(`Created checkout session for user ${req.userId} with price ${prices.data[0].id}`);
 
     res.json({ url: session.url });
   } catch (error) {

@@ -8,16 +8,16 @@ dotenv.config();
 // Handle the improvement response for a conversation
 export async function handleImproveChat(req, res) {
   const { message, conversationId } = req.body;
-  const clerkUserId = req.auth?.userId; // Extracting user ID from authenticated user (from the middleware)
+  const userId = req.userId;
 
-  if (!message || !clerkUserId) {
+  if (!message || !userId) {
     // Return error if message or userId is missing
     return res.status(400).json({ error: "Missing required fields or unauthenticated" });
   }
 
   try {
     // Find the conversation by ID and user ID (ensure the conversation belongs to the correct user)
-    let conversation = await Conversation.findOne({ _id: conversationId, clerkUserId });
+    let conversation = await Conversation.findOne({ _id: conversationId, clerkUserId: userId });
     if (!conversation) {
       // If conversation not found, return an error
       return res.status(404).json({ error: "Conversation not found" });

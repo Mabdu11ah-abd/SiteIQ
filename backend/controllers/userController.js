@@ -1,5 +1,6 @@
 import User from '../models/User.js';
-
+import cookieParser from 'cookie-parser';
+import jwt from 'jsonwebtoken';
 // Get authenticated user's profile
 const getUserProfile = async (req, res) => {
     try {
@@ -105,6 +106,27 @@ const getUserSubscription = async (req, res) => {
     }
 };
 
+export const createUser = async (req, res) => {
+    // Implementation for creating a new user
+    const { name, email, username, password } = req.body;
+    try {
+        const newUser = new User({ name, email, username, password });
+        await newUser.save();
+
+        res.status(201).json({
+            success: true,
+            data: newUser,
+            message: "User created successfully"
+        });
+    }
+    catch (error) {
+        console.error("Error creating user:", error);
+        res.status(500).json({
+            success: false,
+            message: "Server error"
+        });
+    }
+}
 export {
     getUserProfile,
     updateUserProfile,

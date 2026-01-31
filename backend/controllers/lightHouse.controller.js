@@ -9,9 +9,9 @@ const { runLighthouse } = lighthouseService;
 const analyzeWebsite = async (req, res) => {
     try {
         console.log("hit the controller");
-        const clerkUserId = req.auth?.userId;
-        console.log(clerkUserId);
-        if (!clerkUserId) {
+        const userId = req.userId;
+        console.log(userId);
+        if (!userId) {
             return res.status(401).json({ error: "Unauthorized" });
         }
 
@@ -27,12 +27,13 @@ const analyzeWebsite = async (req, res) => {
 
             // Check if website exists
             let website = await Website.findOne({
-                clerkuserId: clerkUserId,
+                clerkuserId: userId,
                 domain: normalizedDomain,
             });
+        console.log("website:", website);    
         if (!website) {
             website = new Website({
-                clerkuserId: clerkUserId,
+                clerkuserId: userId,
                 domain: normalizedDomain,
             });
             await website.save();
@@ -40,7 +41,7 @@ const analyzeWebsite = async (req, res) => {
 
         // Create initial report
         const newReport = new SeoReport({
-            clerkUserId,
+            clerkUserId: userId,
             website: website._id,
             phraseResults: [],
             lighthouse: {
@@ -184,12 +185,12 @@ const getReport = async (req, res) => {
 // 📄 READ ALL for current user
 const getAllReports = async (req, res) => {
     try {
-        const clerkUserId = req.auth?.userId;
-        if (!clerkUserId) {
+        const userId = req.userId;
+        if (!userId) {
             return res.status(401).json({ error: "Unauthorized" });
         }
 
-        const reports = await SeoReport.find({ clerkUserId })
+        const reports = await SeoReport.find({ clerkUserId: userId })
             .populate("website")
             .sort({ createdAt: -1 });
 

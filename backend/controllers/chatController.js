@@ -11,7 +11,7 @@ actionable SEO recommendations based solely on the provided metrics.
 export const handleChatMessage = async (req, res) => {
   try {
     const { websiteId, message } = req.body;
-    const userId = req.auth?.userId;
+    const userId = req.userId;
     if (!websiteId || !message) {
       return res.status(400).json({ error: "Missing websiteId or message." });
     }
@@ -78,7 +78,7 @@ Now answer the user’s question as a trusted SEO consultant.`,
  */
 export const getChatHistory = async (req, res) => {
   console.log("Fetching chat history for website...");
-  const userId = req.auth?.userId;
+  const userId = req.userId;
   console.log("User ID:", userId);
   const { websiteId } = req.params;
   console.log("Website ID:", websiteId);
@@ -92,7 +92,7 @@ export const getChatHistory = async (req, res) => {
  * GET a single chatHistory entry by index
  */
 export const getChatMessage = async (req, res) => {
-  const userId = req.auth?.userId;
+  const userId = req.userId;
   const { websiteId, index } = req.params;
   const site = await Website.findById(websiteId);
 

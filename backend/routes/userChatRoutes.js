@@ -6,16 +6,14 @@ import {
   getChatHistory,
   addMessageToChat
 } from "../controllers/userChatController.js";
+import authenticateJWT from "../middleware/authenticateJWT.js";
 
 const router = express.Router();
 
-router.get("/chats", getUserChats);
-router.delete("/chats/:id", deleteUserChat);
-
-// Fetch full chat history (with messages)
-router.get("/chats/:id", getChatHistory);
-
-// Add a message to an existing chat
-router.post("/chats/:id/messages", addMessageToChat);
+// All user chat routes require authentication
+router.get("/chats", authenticateJWT, getUserChats);
+router.delete("/chats/:id", authenticateJWT, deleteUserChat);
+router.get("/chats/:id", authenticateJWT, getChatHistory);
+router.post("/chats/:id/messages", authenticateJWT, addMessageToChat);
 
 export default router;

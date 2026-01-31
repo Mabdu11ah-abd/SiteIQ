@@ -1,6 +1,5 @@
 // routes/websiteHistoryRoutes.js
 import express from 'express';
-
 import {
   createHistory,
   getUserHistory,
@@ -8,25 +7,16 @@ import {
   updateHistory,
   deleteHistory,
 } from "../controllers/history.controller.js";
+import authenticateJWT from "../middleware/authenticateJWT.js";
 
 const router = express.Router();
 
-// ✅ Apply Clerk mock authentication middleware
-
-// ✅ CREATE - Add a new history record
-router.post('/', createHistory);
-
-// ✅ READ ALL - Get all history records for authenticated user
-router.get('/', getUserHistory);
-
-// ✅ READ ONE - Get a specific history record by ID
-router.get('/:id', getHistoryById);
-
-// ✅ UPDATE - Update a history record by ID
-router.put('/:id', updateHistory);
-
-// ✅ DELETE ONE - Delete a history record by ID
-router.delete('/:id', deleteHistory);
+// All history routes require authentication
+router.post('/', authenticateJWT, createHistory);
+router.get('/', authenticateJWT, getUserHistory);
+router.get('/:id', authenticateJWT, getHistoryById);
+router.put('/:id', authenticateJWT, updateHistory);
+router.delete('/:id', authenticateJWT, deleteHistory);
 
 
 export default router;

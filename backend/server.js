@@ -1,126 +1,106 @@
+// --- Environment Setup ---
 import dotenv from 'dotenv';
 dotenv.config();
+
+// --- Core Modules ---
 import express from 'express';
 import cors from 'cors';
 import mongoose from 'mongoose';
-import { clerkMiddleware } from '@clerk/express'
+import cookieParser from 'cookie-parser';
 
-// imports for swagger 
+// --- API Documentation ---
 import swaggerUi from 'swagger-ui-express';
 import swaggerSpec from './swagger.js';
 import { apiReference } from '@scalar/express-api-reference';
 
-// Import routes
+// --- Routes ---
+import authRoutes from './routes/authRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 import webhookRoutes from './routes/webhookRoutes.js';
 import seoRecommendationsRoutes from './routes/seoRecommendation.routes.js';
 import historyRoutes from './routes/history.routes.js';
-import lighthouseRoutes from "./routes/lightHouse.routes.js";
+import lighthouseRoutes from './routes/lightHouse.routes.js';
 import seoRoutes from './routes/seoRoutes.js';
 import techStackRoutes from './routes/techstackroute.js';
 import techstackChatRoutes from './routes/techstackChatRoute.js';
-import userChatRoutes from "./routes/userChatRoutes.js";
-import dashboardRoutes from "./routes/dashboard.js";
+import userChatRoutes from './routes/userChatRoutes.js';
+import dashboardRoutes from './routes/dashboard.js';
 import chatRoutes from './routes/chatRoutes.js';
-import websiteRoutes from "./routes/websiteRoutes.js";
-import mockClerkAuth from './middleware/testclerkauth.js';
-// Initialize Express
-const app = express();
-app.use(
-    '/api/webhooks',
-    express.raw({ type: 'application/json' }),
-    webhookRoutes
-);
-app.use(express.json()); // To parse JSON request bodies
-app.use(express.urlencoded({ extended: true })); // To parse URL-encoded bodies (e.g. from forms)
+import websiteRoutes from './routes/websiteRoutes.js';
 
+// --- App Initialization ---
+const app = express();
 const PORT = process.env.PORT || 4500;
 
-// Allowed origins for CORS (add your production URLs here)
+// --- CORS Configuration ---
 const allowedOrigins = [
   'http://localhost:3000',
   'http://localhost:4500',
-  process.env.FRONTEND_URL, // Set this in your production .env
-].filter(Boolean); // Remove undefined values
+  process.env.FRONTEND_URL,
+].filter(Boolean);
 
-// Middleware
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow requests with no origin (like mobile apps, Postman, or server-to-server)
-    if (!origin) return callback(null, true);
-    
+    if (!origin) return callback(null, true); // Allow requests with no origin
     if (allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
       console.log(`CORS blocked origin: ${origin}`);
-      callback(null, true); // Allow all for now - change to callback(new Error('Not allowed by CORS')) in strict mode
+      callback(null, true); // Change to callback(new Error('Not allowed by CORS')) for strict mode
     }
   },
-  credentials: true // Allow cookies to be sent
+  credentials: true,
 }));
 
-app.use(clerkMiddleware());
+// --- Core Middleware ---
+app.use(cookieParser());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
+// --- Webhook Raw Body Middleware ---
+app.use('/api/webhooks', express.raw({ type: 'application/json' }), webhookRoutes);
+app.use('/api/stripe/webhook', express.raw({ type: 'application/json' }));
 
-//middle wares 
-
-app.use('/api/stripe/webhook', express.raw({ type: 'application/json' })); // Raw body for webhooks
-app.use(express.json()); // JSON for other routes
-
-
-
-
-
-// Connect to MongoDB
+// --- Database Connection ---
 mongoose.connect(process.env.MONGODB_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 })
-    .then(() => console.log('Connected to MongoDB'))
-    .catch((err) => console.error('MongoDB connection error:', err));
+  .then(() => console.log('Connected to MongoDB'))
+  .catch((err) => console.error('MongoDB connection error:', err));
 
-// Routes
+// --- Health Check Route ---
 app.get('/', (req, res) => {
   res.send('Welcome to SiteIQ Backend!');
 });
 
+// --- API Routes ---
+app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/seoreports', seoRoutes);
 app.use('/api/history', historyRoutes);
-app.use("/api/lighthouse", lighthouseRoutes);
-app.use("/api/websites", websiteRoutes);
-app.use("/api/techstack", techStackRoutes);
+app.use('/api/lighthouse', lighthouseRoutes);
+app.use('/api/websites', websiteRoutes);
+app.use('/api/techstack', techStackRoutes);
 app.use('/api/techstackchat', techstackChatRoutes);
 app.use('/api/seoRecommendations', seoRecommendationsRoutes);
-app.use("/api/userchat", userChatRoutes);   
-app.use("/api/dashboard",dashboardRoutes);
-app.use('/api/websiteChat', chatRoutes); 
+app.use('/api/userchat', userChatRoutes);
+app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/websiteChat', chatRoutes);
 
-
-
-//swagger routes 
-
-// Serve Swagger UI at /api-docs
+// --- API Documentation ---
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+app.use('/reference', apiReference({
+  url: '/openapi.json',
+  theme: 'purple',
+}));
 
-// Serve Scalar API reference at /reference
-app.use(
-  '/reference',
-  apiReference({
-    url: '/openapi.json', // Endpoint serving your OpenAPI spec
-    theme: 'purple', // Optional: choose a theme
-  })
-);
-
-// Serve the OpenAPI spec at /openapi.json
 app.get('/openapi.json', (req, res) => {
   res.setHeader('Content-Type', 'application/json');
   res.send(swaggerSpec);
 });
 
-
-  
-// Start the server
+// --- Start Server ---
 app.listen(PORT, () => {
-    console.log(`Server is running on http://localhost:${PORT}`);
+  console.log(`Server is running on http://localhost:${PORT}`);
 });

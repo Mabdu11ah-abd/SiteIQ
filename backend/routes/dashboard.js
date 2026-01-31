@@ -6,16 +6,15 @@ import {
     getUserSeoRecommendations,
     getRecentTechStacks,
 } from "../controllers/dashboardController.js";
+import authenticateJWT from "../middleware/authenticateJWT.js";
 
 const router = express.Router();
 
-
-
-// Routes
-router.get("/overview", getUserOverview);
-router.get("/websites", getUserWebsites);
-router.get("/chat-history", getUserChatHistory);
-router.get("/seo-recommendations", getUserSeoRecommendations);
-router.get("/techstack", getRecentTechStacks);
+// All dashboard routes require authentication
+router.get("/overview", authenticateJWT, getUserOverview);
+router.get("/websites", authenticateJWT, getUserWebsites);
+router.get("/chat-history", authenticateJWT, getUserChatHistory);
+router.get("/seo-recommendations", authenticateJWT, getUserSeoRecommendations);
+router.get("/techstack", authenticateJWT, getRecentTechStacks);
 
 export default router;

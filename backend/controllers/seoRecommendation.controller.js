@@ -9,11 +9,11 @@ import { callOpenAI, truncateDataForTokenLimit } from "../utils/openaiClient.js"
 const generateLightHouseRecommendation = async (req, res) => {
   try {
     console.log("✅ Step 1: Extracting user ID from auth...");
-    const clerkUserId = req.auth.userId;
+    const clerkUserId = req.userId;
     console.log(clerkUserId);
 
-    if (!req.auth || !req.auth.userId) {
-      console.warn("❌ Missing auth context.");
+    if (!clerkUserId) {
+      console.warn("\u274c Missing user ID.");
       return res.status(401).json({ error: "Unauthorized" });
     }
 
@@ -212,10 +212,10 @@ const getSEORecommendations = async (req, res) => {
   try {
     
     console.log("✅ Step 1: Auth check");
-    const clerkUserId = req.auth?.userId; // hardcoded for now
-    console.log(clerkUserId);
+    const userId = req.userId;
+    console.log(userId);
 
-    if (!clerkUserId) {
+    if (!userId) {
       console.warn("❌ Missing auth context.");
       return res.status(401).json({ error: "Unauthorized" });
     }
@@ -253,18 +253,18 @@ const getSEORecommendations = async (req, res) => {
 
 const getUserSeoRecommendations = async (req, res) => {
   try {
-    const clerkUserId = req.auth?.userId;
-    console.log(clerkUserId);
+    const userId = req.userId;
+    console.log(userId);
 
-    if (!clerkUserId) {
+    if (!userId) {
       return res
         .status(401)
-        .json({ error: "Unauthorized: Missing Clerk User ID" });
+        .json({ error: "Unauthorized: Missing User ID" });
     }
 
     // Step 1: Find the user's website
     const website = await Website.findOne({
-      clerkuserId: clerkUserId,
+      clerkuserId: userId,
     }).populate("seoRecommendation"); // Populate linked SEO recommendations
 
     if (!website) {
@@ -395,9 +395,9 @@ ${JSON.stringify(truncateDataForTokenLimit(scoresArray, 20000), null, 2)}
 const generateSEORecommendations = async (req, res) => {
   try {
     console.log("✅ Step 1: Auth check");
-    const clerkUserId = req.auth.userId;
+    const userId = req.userId;
 
-    if (!clerkUserId) {
+    if (!userId) {
       console.warn("❌ Missing auth context.");
       return res.status(401).json({ error: "Unauthorized" });
     }

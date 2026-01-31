@@ -4,8 +4,8 @@ import WebsiteVector from "./vectorSchema.js";
 
 const UserSchema = new mongoose.Schema(
   {
-    // Clerk Authentication
-    clerkUserId: { type: String, required: true, unique: true },
+    // Legacy Clerk Authentication (optional for backward compatibility)
+    clerkUserId: { type: String, sparse: true, unique: true },
     name: {
       type: String,
       required: true,
@@ -29,6 +29,7 @@ const UserSchema = new mongoose.Schema(
       lowercase: true,
       match: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
     },
+    passwordHash: { type: String, required: true },
     phoneNumber: { type: String, match: /^[0-9]{10,15}$/ },
     image: { type: String, default: "https://default-avatar.com/avatar.png" },
     isVerified: { type: Boolean, default: false },
@@ -103,6 +104,8 @@ const UserSchema = new mongoose.Schema(
 /////////////////////////////
 // 💡 Model Methods
 /////////////////////////////
+
+
 
 UserSchema.methods.resetWebsiteLimit = async function () {
   const now = new Date();

@@ -5,10 +5,10 @@ import Conversation from "../models/techstackChatModel.js";
 // 🟦 1. Overview
 export const getUserOverview = async (req, res) => {
     console.log("hit the controller");
-    const clerkUserId = req.auth?.userId;
-    console.log(clerkUserId);
+    const userId = req.userId;
+    console.log(userId);
     try {
-        const user = await User.findOne({ clerkUserId: req.auth.userId });
+        const user = await User.findById(userId);
         if (!user) return res.status(404).json({ error: "User not found" });
 
         const overview = {
@@ -29,7 +29,7 @@ export const getUserOverview = async (req, res) => {
 // 🟨 2. Websites + populated reports
 export const getUserWebsites = async (req, res) => {
     try {
-        const websites = await Website.find({ clerkuserId: req.auth.userId })
+        const websites = await Website.find({ clerkuserId: req.userId })
             .populate("seoReport")
             .populate("seoRecommendation");
 
@@ -42,7 +42,7 @@ export const getUserWebsites = async (req, res) => {
 // 🟪 3. Chat history
 export const getUserChatHistory = async (req, res) => {
     try {
-        const websites = await Website.find({ clerkuserId: req.auth.userId }, "domain chatHistory chatCount");
+        const websites = await Website.find({ clerkuserId: req.userId }, "domain chatHistory chatCount");
         res.json(websites);
     } catch (err) {
         res.status(500).json({ error: "Server error", detail: err.message });
@@ -52,7 +52,7 @@ export const getUserChatHistory = async (req, res) => {
 // 🟧 4. SEO Recommendations
 export const getUserSeoRecommendations = async (req, res) => {
     try {
-        const recommendations = await SeoRecommendation.find({ clerkUserId: req.auth.userId }).populate("seoReport");
+        const recommendations = await SeoRecommendation.find({ clerkUserId: req.userId }).populate("seoReport");
         res.json(recommendations);
     } catch (err) {
         res.status(500).json({ error: "Server error", detail: err.message });
@@ -62,7 +62,7 @@ export const getUserSeoRecommendations = async (req, res) => {
 // 🟥 5. Tec stack
 export const getRecentTechStacks = async (req, res) => {
     try {
-        const userId = req.auth.userId;
+        const userId = req.userId;
 
         const recentChats = await Conversation.find({
             clerkUserId: userId,

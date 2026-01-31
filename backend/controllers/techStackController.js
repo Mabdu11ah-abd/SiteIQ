@@ -27,7 +27,7 @@ export async function recommendStack(req, res) {
 // IMPROVE existing website
 export async function improveStack(req, res) {
   const { websiteUrl, useCase, seoFocused, performanceFocused } = req.body;
-  const clerkUserId = req.auth?.userId;
+  const userId = req.userId;
 
   if (!websiteUrl || !useCase || typeof seoFocused !== "boolean" || typeof performanceFocused !== "boolean") {
     return res.status(400).json({ error: "Website URL, use case, SEO focus, and performance focus are required" });
@@ -43,7 +43,7 @@ export async function improveStack(req, res) {
 
     // Save the response to a new conversation
     const conversation = new Conversation({
-      clerkUserId,
+      clerkUserId: userId,
       mode: "improve",
       title: `Improvements for ${extractHostname(websiteUrl)} [${new Date().toLocaleString()}]`,
       improvementResponse: JSON.stringify(recommendation),
