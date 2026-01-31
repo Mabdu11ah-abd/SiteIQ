@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: siteiq-backend
+    runtime: node
+    plan: starter
+    buildCommand: npm ci
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: GOOGLE_PAGESPEED_API_KEY
+        sync: false

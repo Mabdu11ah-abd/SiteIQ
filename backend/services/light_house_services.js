@@ -1,47 +1,80 @@
-import lighthouse from 'lighthouse';
-import puppeteer from 'puppeteer';
+import axios from 'axios';
 
+/**
+ * Run PageSpeed Insights analysis using Google PageSpeed API
+ * @param {string} url - The URL to analyze
+ * @returns {Object} Lighthouse-compatible report object
+ */
 const runLighthouse = async (url) => {
-  let browser;
-  
   try {
-    const launchOptions = {
-      headless: true,
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-accelerated-2d-canvas',
-        '--no-first-run',
-        '--no-zygote',
-        '--disable-gpu'
-      ],
-    };
-
-    // DO NOT set executablePath - remove this entire block:
-    // if (process.env.CHROME_EXECUTABLE_PATH) {
-    //   launchOptions.executablePath = process.env.CHROME_EXECUTABLE_PATH;
-    // } else if (process.env.PUPPETEER_EXECUTABLE_PATH) {
-    //   launchOptions.executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
-    // }
-
-    browser = await puppeteer.launch(launchOptions);
-
-    const options = {
-      output: 'json',
-      onlyCategories: ['performance', 'accessibility', 'best-practices', 'seo'],
-      port: (new URL(browser.wsEndpoint())).port,
-    };
-
-    const runnerResult = await lighthouse(url, options);
-    return runnerResult.lhr;
-  } catch (error) {
-    console.error('Lighthouse error:', error);
-    throw error;
-  } finally {
-    if (browser) {
-      await browser.close();
+    const apiKey = process.env.GOOGLE_PAGESPEED_API_KEY;
+    
+    if (!apiKey) {
+      console.warn('⚠️  GOOGLE_PAGESPEED_API_KEY not set. Using API without key (limited quota).');
     }
+
+    // PageSpeed API endpoint
+    const apiUrl = 'https://www.googleapis.com/pagespeedonline/v5/runPagespeed';
+    
+    // Categories to analyze (matches Lighthouse categories)
+    const categories = ['performance', 'accessibility', 'best-practices', 'seo'];
+    
+    // Build API request
+    const params = {
+      url: url,
+      strategy: 'mobile', // or 'desktop'
+      category: categories,
+    };
+    
+    if (apiKey) {
+      params.key = apiKey;
+    }
+
+    console.log(`📊 Calling PageSpeed API for: ${url}`);
+    
+    const response = await axios.get(apiUrl, { 
+      params,
+      timeout: 60000 // 60 second timeout
+    });
+
+    if (!response.data || !response.data.lighthouseResult) {
+      throw new Error('Invalid PageSpeed API response');
+    }
+
+    // Extract Lighthouse results from PageSpeed API response
+    const lighthouseResult = response.data.lighthouseResult;
+    
+    console.log('✅ PageSpeed API analysis completed');
+    
+    // Return Lighthouse-compatible format
+    return {
+      fetchTime: lighthouseResult.fetchTime,
+      finalUrl: lighthouseResult.finalUrl,
+      lighthouseVersion: lighthouseResult.lighthouseVersion,
+      requestedUrl: url,
+      categories: lighthouseResult.categories,
+      audits: lighthouseResult.audits,
+      configSettings: lighthouseResult.configSettings,
+      timing: lighthouseResult.timing,
+      userAgent: lighthouseResult.userAgent,
+    };
+    
+  } catch (error) {
+    console.error('PageSpeed API error:', error.message);
+    
+    if (error.response) {
+      // API returned an error response
+      console.error('API Error Status:', error.response.status);
+      console.error('API Error Data:', error.response.data);
+      
+      if (error.response.status === 429) {
+        throw new Error('PageSpeed API quota exceeded. Please add GOOGLE_PAGESPEED_API_KEY to environment variables.');
+      } else if (error.response.status === 400) {
+        throw new Error(`Invalid URL or request: ${error.response.data.error?.message || 'Bad Request'}`);
+      }
+    }
+    
+    throw new Error(`PageSpeed analysis failed: ${error.message}`);
   }
 };
 
