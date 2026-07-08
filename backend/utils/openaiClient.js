@@ -5,6 +5,9 @@ dotenv.config();
 
 const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
+    baseURL: process.env.OPENAI_BASE_URL || "https://api.openai.com/v1",
+    timeout: Number(process.env.OPENAI_TIMEOUT_MS || 60000),
+    maxRetries: Number(process.env.OPENAI_MAX_RETRIES || 2),
 });
 
 // Rough token estimation: ~4 characters per token for English text
@@ -105,22 +108,50 @@ export const callOpenAI = async (
     opts = {}
 ) => {
     // Choose a default that you definitely have access to:
-    const primaryModel = opts.model || "gpt-3.5-turbo-16k";
+    const primaryModel = opts.model || process.env.OPENAI_MODEL || "gpt-4o-mini";
     const maxTokens = opts.max_tokens ?? 4096;
     const stream = opts.stream ?? false;
+    const fallbackModels = Array.from(new Set([
+        primaryModel,
+        "gpt-4o-mini",
+        "gpt-4.1-mini",
+        "gpt-3.5-turbo-0125",
+    ]));
 
-    try {
-        return await _createCompletion(primaryModel, messages, maxTokens, stream);
-    } catch (err) {
-        // If the model isn't found or you lack access, fall back:
-        if (err.code === "model_not_found" || err.status === 404) {
-            console.warn(
-                `Model "${primaryModel}" unavailable, falling back to gpt-3.5-turbo-16k.`
-            );
-            return await _createCompletion("gpt-3.5-turbo-16k", messages, maxTokens, stream);
+    let lastError;
+
+    for (const model of fallbackModels) {
+        try {
+            return await _createCompletion(model, messages, maxTokens, stream);
+        } catch (err) {
+            lastError = err;
+
+            const status = err?.status ?? err?.response?.status;
+            const code = err?.code;
+            const message = err?.message || "";
+            const isConnectionIssue =
+                code === "APIConnectionError" ||
+                code === "ECONNRESET" ||
+                code === "ECONNREFUSED" ||
+                code === "ETIMEDOUT" ||
+                message.includes("Connection error");
+
+            if (status === 404 || code === "model_not_found") {
+                console.warn(`Model "${model}" unavailable, trying next fallback.`);
+                continue;
+            }
+
+            if (isConnectionIssue) {
+                console.warn(`OpenAI connection issue while using "${model}": ${message}`);
+                continue;
+            }
+
+            throw err;
         }
-        throw err;
     }
+
+    const errorMessage = lastError?.message || "OpenAI request failed";
+    throw new Error(`OpenAI request failed after retries and fallbacks: ${errorMessage}`);
 };
 
 async function _createCompletion(model, messages, max_tokens, stream) {
