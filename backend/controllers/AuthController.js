@@ -187,16 +187,31 @@ export const login = async (req, res) => {
  */
 export const getCurrentUser = async (req, res) => {
     try {
-        // User is already attached by authenticateJWT middleware
+        if (!req.userId) {
+            return res.status(401).json({
+                success: false,
+                message: 'Unauthorized'
+            });
+        }
+
+        const user = await User.findById(req.userId);
+
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: 'User not found'
+            });
+        }
+
         const userResponse = {
-            _id: req.user._id,
-            name: req.user.name,
-            username: req.user.username,
-            email: req.user.email,
-            membership: req.user.membership,
-            image: req.user.image,
-            isVerified: req.user.isVerified,
-            loginCount: req.user.loginCount
+            _id: user._id,
+            name: user.name,
+            username: user.username,
+            email: user.email,
+            membership: user.membership,
+            image: user.image,
+            isVerified: user.isVerified,
+            loginCount: user.loginCount
         };
 
         res.status(200).json({
