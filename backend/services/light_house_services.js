@@ -34,7 +34,7 @@ const runLighthouse = async (url) => {
     
     const response = await axios.get(apiUrl, { 
       params,
-      timeout: 60000 // 60 second timeout
+      timeout: 180000 // 60 second timeout
     });
 
     if (!response.data || !response.data.lighthouseResult) {

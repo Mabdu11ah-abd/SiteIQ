@@ -23,19 +23,8 @@ const authenticateJWT = async (req, res, next) => {
         // Verify token
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
         
-        // Find user by ID from token (exclude password hash)
-        const user = await User.findById(decoded.userId).select('-__v -passwordHash');
 
-        if (!user) {
-            return res.status(404).json({ 
-                success: false,
-                error: 'User not found' 
-            });
-        }
-
-        // Attach user to request object
-        req.user = user;
-        req.userId = user._id;
+        req.userId = decoded.userId;
         
         next();
     } catch (error) {
