@@ -4,10 +4,10 @@ import dotenv from "dotenv";
 dotenv.config();
 
 const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-    baseURL: process.env.OPENAI_BASE_URL || "https://api.openai.com/v1",
-    timeout: Number(process.env.OPENAI_TIMEOUT_MS || 60000),
-    maxRetries: Number(process.env.OPENAI_MAX_RETRIES || 2),
+  apiKey: process.env.OPENAI_API_KEY,
+  baseURL: process.env.OPENAI_BASE_URL || "https://api.openai.com/v1",
+  timeout: Number(process.env.OPENAI_TIMEOUT_MS || 60000),
+  maxRetries: Number(process.env.OPENAI_MAX_RETRIES || 2),
 });
 
 // Rough token estimation: ~4 characters per token for English text
@@ -22,76 +22,85 @@ const MAX_INPUT_CHARS = MAX_INPUT_TOKENS * CHARS_PER_TOKEN;
  * @param {number} maxChars - Maximum characters allowed
  * @returns {Object} - Truncated data object
  */
-export const truncateDataForTokenLimit = (data, maxChars = MAX_INPUT_CHARS / 2) => {
-    if (!data) return data;
-    
-    const jsonStr = JSON.stringify(data, null, 2);
-    
-    // If already within limits, return as-is
-    if (jsonStr.length <= maxChars) {
-        return data;
+export const truncateDataForTokenLimit = (
+  data,
+  maxChars = MAX_INPUT_CHARS / 2,
+) => {
+  if (!data) return data;
+
+  const jsonStr = JSON.stringify(data, null, 2);
+
+  // If already within limits, return as-is
+  if (jsonStr.length <= maxChars) {
+    return data;
+  }
+
+  console.warn(
+    `⚠️ Data exceeds token limit (${jsonStr.length} chars). Truncating to ${maxChars} chars...`,
+  );
+
+  // Deep clone to avoid mutating original
+  const truncated = JSON.parse(JSON.stringify(data));
+
+  // Helper to truncate arrays to first N items
+  const truncateArrays = (obj, maxItems = 10) => {
+    if (Array.isArray(obj)) {
+      const truncatedArr = obj.slice(0, maxItems);
+      if (obj.length > maxItems) {
+        truncatedArr.push({
+          _truncated: `... and ${obj.length - maxItems} more items`,
+        });
+      }
+      return truncatedArr.map((item) => truncateArrays(item, maxItems));
+    } else if (obj && typeof obj === "object") {
+      const result = {};
+      for (const key of Object.keys(obj)) {
+        result[key] = truncateArrays(obj[key], maxItems);
+      }
+      return result;
     }
-    
-    console.warn(`⚠️ Data exceeds token limit (${jsonStr.length} chars). Truncating to ${maxChars} chars...`);
-    
-    // Deep clone to avoid mutating original
-    const truncated = JSON.parse(JSON.stringify(data));
-    
-    // Helper to truncate arrays to first N items
-    const truncateArrays = (obj, maxItems = 10) => {
-        if (Array.isArray(obj)) {
-            const truncatedArr = obj.slice(0, maxItems);
-            if (obj.length > maxItems) {
-                truncatedArr.push({ _truncated: `... and ${obj.length - maxItems} more items` });
-            }
-            return truncatedArr.map(item => truncateArrays(item, maxItems));
-        } else if (obj && typeof obj === 'object') {
-            const result = {};
-            for (const key of Object.keys(obj)) {
-                result[key] = truncateArrays(obj[key], maxItems);
-            }
-            return result;
-        }
-        return obj;
-    };
-    
-    // Helper to truncate long strings
-    const truncateStrings = (obj, maxLen = 500) => {
-        if (typeof obj === 'string' && obj.length > maxLen) {
-            return obj.substring(0, maxLen) + '... [truncated]';
-        } else if (Array.isArray(obj)) {
-            return obj.map(item => truncateStrings(item, maxLen));
-        } else if (obj && typeof obj === 'object') {
-            const result = {};
-            for (const key of Object.keys(obj)) {
-                result[key] = truncateStrings(obj[key], maxLen);
-            }
-            return result;
-        }
-        return obj;
-    };
-    
-    // Apply truncation strategies progressively
-    let result = truncateArrays(truncated, 15);
-    let resultStr = JSON.stringify(result, null, 2);
-    
-    if (resultStr.length > maxChars) {
-        result = truncateArrays(result, 8);
-        resultStr = JSON.stringify(result, null, 2);
+    return obj;
+  };
+
+  // Helper to truncate long strings
+  const truncateStrings = (obj, maxLen = 500) => {
+    if (typeof obj === "string" && obj.length > maxLen) {
+      return obj.substring(0, maxLen) + "... [truncated]";
+    } else if (Array.isArray(obj)) {
+      return obj.map((item) => truncateStrings(item, maxLen));
+    } else if (obj && typeof obj === "object") {
+      const result = {};
+      for (const key of Object.keys(obj)) {
+        result[key] = truncateStrings(obj[key], maxLen);
+      }
+      return result;
     }
-    
-    if (resultStr.length > maxChars) {
-        result = truncateStrings(result, 300);
-        resultStr = JSON.stringify(result, null, 2);
-    }
-    
-    if (resultStr.length > maxChars) {
-        result = truncateArrays(result, 5);
-        result = truncateStrings(result, 150);
-    }
-    
-    console.log(`✅ Data truncated to ${JSON.stringify(result, null, 2).length} chars`);
-    return result;
+    return obj;
+  };
+
+  // Apply truncation strategies progressively
+  let result = truncateArrays(truncated, 15);
+  let resultStr = JSON.stringify(result, null, 2);
+
+  if (resultStr.length > maxChars) {
+    result = truncateArrays(result, 8);
+    resultStr = JSON.stringify(result, null, 2);
+  }
+
+  if (resultStr.length > maxChars) {
+    result = truncateStrings(result, 300);
+    resultStr = JSON.stringify(result, null, 2);
+  }
+
+  if (resultStr.length > maxChars) {
+    result = truncateArrays(result, 5);
+    result = truncateStrings(result, 150);
+  }
+
+  console.log(
+    `✅ Data truncated to ${JSON.stringify(result, null, 2).length} chars`,
+  );
+  return result;
 };
 
 /**
@@ -103,73 +112,84 @@ export const truncateDataForTokenLimit = (data, maxChars = MAX_INPUT_CHARS / 2) 
  * @param {number} [opts.max_tokens]- Max tokens you want back
  * @param {boolean} [opts.stream]   - Whether to stream the response
  */
-export const callOpenAI = async (
-    messages,
-    opts = {}
-) => {
-    // Choose a default that you definitely have access to:
-    const primaryModel = opts.model || process.env.OPENAI_MODEL || "gpt-4o-mini";
-    const maxTokens = opts.max_tokens ?? 4096;
-    const stream = opts.stream ?? false;
-    const fallbackModels = Array.from(new Set([
-        primaryModel,
-        "gpt-4o-mini",
-        "gpt-4.1-mini",
-        "gpt-3.5-turbo-0125",
-    ]));
+export const callOpenAI = async (messages, opts = {}) => {
+  // Choose a default that you definitely have access to:
+  const primaryModel = opts.model || process.env.OPENAI_MODEL || "gpt-4o-mini";
+  const maxTokens = opts.max_tokens ?? 4096;
+  const stream = opts.stream ?? false;
+  const fallbackModels = Array.from(
+    new Set([
+      primaryModel,
+      "gpt-4o-mini",
+      "gpt-4.1-mini",
+      "gpt-3.5-turbo-0125",
+    ]),
+  );
 
-    let lastError;
+  let lastError;
 
-    for (const model of fallbackModels) {
-        try {
-            return await _createCompletion(model, messages, maxTokens, stream);
-        } catch (err) {
-            lastError = err;
+  for (const model of fallbackModels) {
+    try {
+      return await _createCompletion(model, messages, maxTokens, stream);
+    } catch (err) {
+      lastError = err;
 
-            const status = err?.status ?? err?.response?.status;
-            const code = err?.code;
-            const message = err?.message || "";
-            const isConnectionIssue =
-                code === "APIConnectionError" ||
-                code === "ECONNRESET" ||
-                code === "ECONNREFUSED" ||
-                code === "ETIMEDOUT" ||
-                message.includes("Connection error");
+      const status = err?.status ?? err?.response?.status;
+      const code = err?.code;
+      const message = err?.message || "";
+      const isConnectionIssue =
+        code === "APIConnectionError" ||
+        code === "ECONNRESET" ||
+        code === "ECONNREFUSED" ||
+        code === "ETIMEDOUT" ||
+        message.includes("Connection error");
 
-            if (status === 404 || code === "model_not_found") {
-                console.warn(`Model "${model}" unavailable, trying next fallback.`);
-                continue;
-            }
+      console.error(err);
+      console.error({
+        name: err.name,
+        message: err.message,
+        code: err.code,
+        status: err.status,
+        cause: err.cause,
+      });
 
-            if (isConnectionIssue) {
-                console.warn(`OpenAI connection issue while using "${model}": ${message}`);
-                continue;
-            }
+      if (status === 404 || code === "model_not_found") {
+        console.warn(`Model "${model}" unavailable, trying next fallback.`);
+        continue;
+      }
 
-            throw err;
-        }
+      if (isConnectionIssue) {
+        console.warn(
+          `OpenAI connection issue while using "${model}": ${message}`,
+        );
+        continue;
+      }
+
+      throw err;
     }
+  }
 
-    const errorMessage = lastError?.message || "OpenAI request failed";
-    throw new Error(`OpenAI request failed after retries and fallbacks: ${errorMessage}`);
+  const errorMessage = lastError?.message || "OpenAI request failed";
+  throw new Error(
+    `OpenAI request failed after retries and fallbacks: ${errorMessage}`,
+  );
 };
 
 async function _createCompletion(model, messages, max_tokens, stream) {
-    const response = await openai.chat.completions.create({
-        model,
-        messages,
-        max_tokens,
-        stream,
-    });
+  const response = await openai.chat.completions.create({
+    model,
+    messages,
+    max_tokens,
+    stream,
+  });
 
-    if (stream) {
-        // Caller can for-await over this
-        return response;
-    }
+  if (stream) {
+    // Caller can for-await over this
+    return response;
+  }
 
-    return response.choices?.[0]?.message?.content?.trim() ?? "";
+  return response.choices?.[0]?.message?.content?.trim() ?? "";
 }
-
 
 const SEO_EXPERT_SYSTEM_PROMPT = `
 You are an advanced SEO assistant trained with the knowledge and experience of a 10-year veteran in the SEO industry.
