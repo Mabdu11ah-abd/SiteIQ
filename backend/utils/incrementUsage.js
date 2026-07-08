@@ -1,15 +1,15 @@
 import User from '../models/User.js'; // Import User model
 
 /**
- * Increments usage count for the given Clerk user ID and recommendation type.
- * @param {String} clerkUserId - The Clerk user ID (from req.auth.userId).
+ * Increments usage count for the authenticated user and recommendation type.
+ * @param {String} userId - The authenticated user id from the JWT payload.
  * @param {'seo'|'techstack'} type - The type of recommendation.
  */
-const incrementUsage = async (clerkUserId, type) => {
+const incrementUsage = async (userId, type) => {
   try {
-    const user = await User.findOne({ clerkUserId });
+    const user = await User.findById(userId) || await User.findOne({ clerkUserId: userId });
     if (!user) {
-      console.warn(`❌ No user found with clerkUserId: ${clerkUserId}`);
+      console.warn(`❌ No user found for authenticated user id: ${userId}`);
       return;
     }
 
@@ -30,9 +30,9 @@ const incrementUsage = async (clerkUserId, type) => {
     }
 
     await user.save();
-    console.log(`✅ Incremented ${type} usage for user ${clerkUserId}`);
+    console.log(`✅ Incremented ${type} usage for user ${userId}`);
   } catch (err) {
-    console.error(`❌ Error incrementing usage for user ${clerkUserId}:`, err.message);
+    console.error(`❌ Error incrementing usage for user ${userId}:`, err.message);
   }
 };
 

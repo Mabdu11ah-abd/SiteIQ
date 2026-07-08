@@ -667,7 +667,7 @@ No Lighthouse report data was provided for analysis.
     const updatedRecommendation = await SeoRecommendation.findOneAndUpdate(
       { seoReport: seoReportDoc._id },
       {
-        clerkUserId: clerkUserId,
+        clerkUserId: userId,
         website: websiteDoc._id,
         seoReport: seoReportDoc._id,
         recommendations: {
