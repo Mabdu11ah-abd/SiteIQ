@@ -4,4 +4,4 @@ module.exports = {
     '@tailwindcss/postcss': {}, // Required for Tailwind v4
     'autoprefixer': {}
   }
-}
+};
